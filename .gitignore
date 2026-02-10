@@ -1,0 +1,212 @@
+# 编译输出和构建目录
+target/
+build/
+dist/
+out/
+
+# IDE相关文件
+.idea/
+*.iml
+*.iws
+.vscode/
+
+# Eclipse
+.settings/
+.project
+.classpath
+
+# NetBeans
+nbproject/
+
+# Vim
+*.swp
+*.swo
+
+# IntelliJ IDEA
+*.iws
+*.ipr
+*.iml
+.idea/
+
+# Visual Studio Code
+.vscode/
+
+# Maven
+log/
+logs/
+
+# Gradle
+.gradle/
+gradle-app.setting
+
+# 编辑器备份文件
+*~
+*.bak
+*.tmp
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+
+# Log files
+*.log
+
+# Environment specific properties
+**/local.properties
+**/env.properties
+
+# Secrets and API keys
+**/application-secret.properties
+**/secrets.properties
+**/.env
+
+# Database
+*.db
+*.db-journal
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+lib-cov/
+
+# Dependency directories (NodeJS)
+node_modules/
+
+# User-specific configurations
+config/
+
+# System Files
+.DS_Store
+desktop.ini
+
+# Spring Boot
+!src/main/resources/application.properties
+src/main/resources/application-*.properties
+
+# Windows thumbnail cache
+Thumbs.db
+ehthumbs.db
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.com.apple.timemachine.supported
+.apdisk
+
+# Windows
+[C-c]ache/
+[D-d]esktop.ini
+$RECYCLE.BIN/
+Thumbs.db
+ehthumbs.db
+[E-e]xternal[B-b]rowser[C-c]ache/
+[L-l]ocal[S-s]ettings/[T-t]emporary[I-i]nternet[F-f]iles/
+[N-n]etwork[S-s]hortcuts/
+[T-t]emporary[I-i]nternet[F-f]iles/
+
+# Linux
+.directory
+.gnome/
+.metadata/
+.nautilus/
+.thumbnails/
+Trash-[0-9]*/
+.user.ini
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+.env
+.ENV
+.egg-info/
+.eggs/
+.ipython/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+nox/
+.hypothesis/
+
+# Docker
+.docker/
+
+# Local development environment
+.local/
+.env.local
+.env.production.local
+.env.development.local
+
+# Sensitive files
+**/credentials.json
+**/config/secrets.yml
+**/private_key.pem
+**/private.key
+**/ssh-keys/
+**/keys/
+
+# Database files
+*.sqlite
+*.sqlite3
+
+# IDE specific
+*.orig
+*.rej
+*.swp
+*.swo
+*~
+
+# Maven wrapper
+!.mvn/wrapper/maven-wrapper.properties
+!.mvn/wrapper/MavenWrapperDownloader.java
+
+# Backend specific
+backend/target/
+backend/logs/
+backend/log/
+
+# Frontend specific
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+# Configuration files that might contain sensitive info
+!**/application.properties
+**/application-secret.*
+**/application-local.*
+
+# Ignore DashScope API key if stored locally
+**/dashscope.api.key
