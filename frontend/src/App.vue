@@ -38,6 +38,38 @@
               <el-icon><Search /></el-icon>
               <span>SQL 查询</span>
             </el-menu-item>
+            <el-menu-item index="/data-relation">
+              <el-icon><Share /></el-icon>
+              <span>数据关系图谱</span>
+            </el-menu-item>
+            <el-menu-item index="/data-quality">
+              <el-icon><CircleCheck /></el-icon>
+              <span>数据质量检测</span>
+            </el-menu-item>
+            <el-menu-item index="/sensitive-data">
+              <el-icon><Lock /></el-icon>
+              <span>敏感数据管理</span>
+            </el-menu-item>
+            <el-menu-item index="/reports">
+              <el-icon><Document /></el-icon>
+              <span>报表管理</span>
+            </el-menu-item>
+            <el-menu-item index="/lineage">
+              <el-icon><Share /></el-icon>
+              <span>数据血缘</span>
+            </el-menu-item>
+            <el-menu-item index="/sql-optimization">
+              <el-icon><MagicStick /></el-icon>
+              <span>SQL优化</span>
+            </el-menu-item>
+            <el-menu-item index="/metrics">
+              <el-icon><TrendCharts /></el-icon>
+              <span>指标库</span>
+            </el-menu-item>
+            <el-menu-item index="/data-story">
+              <el-icon><Reading /></el-icon>
+              <span>数据故事</span>
+            </el-menu-item>
           </el-sub-menu>
 
           <el-menu-item index="/history">
@@ -98,7 +130,7 @@
 </template>
 
 <script setup lang="ts">
-import { Connection, DataLine, Coin } from '@element-plus/icons-vue'
+import { Connection, DataLine, Coin, Share, CircleCheck, Lock, Document, MagicStick, TrendCharts, Reading } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import Breadcrumb from './components/Breadcrumb.vue'
 

@@ -55,6 +55,54 @@ const routes: RouteRecordRaw[] = [
     name: 'Settings',
     component: () => import('../views/Settings.vue'),
     meta: { title: '设置' }
+  },
+  {
+    path: '/data-relation',
+    name: 'DataRelation',
+    component: () => import('../views/DataRelationGraph.vue'),
+    meta: { title: '数据关系图谱' }
+  },
+  {
+    path: '/data-quality',
+    name: 'DataQuality',
+    component: () => import('../views/DataQualityCheck.vue'),
+    meta: { title: '数据质量检测' }
+  },
+  {
+    path: '/sensitive-data',
+    name: 'SensitiveData',
+    component: () => import('../views/SensitiveDataManage.vue'),
+    meta: { title: '敏感数据管理' }
+  },
+  {
+    path: '/reports',
+    name: 'Reports',
+    component: () => import('../views/ReportManage.vue'),
+    meta: { title: '报表管理' }
+  },
+  {
+    path: '/lineage',
+    name: 'Lineage',
+    component: () => import('../views/DataLineage.vue'),
+    meta: { title: '数据血缘' }
+  },
+  {
+    path: '/sql-optimization',
+    name: 'SqlOptimization',
+    component: () => import('../views/SqlOptimization.vue'),
+    meta: { title: 'SQL优化' }
+  },
+  {
+    path: '/metrics',
+    name: 'Metrics',
+    component: () => import('../views/MetricManage.vue'),
+    meta: { title: '指标库' }
+  },
+  {
+    path: '/data-story',
+    name: 'DataStory',
+    component: () => import('../views/DataStory.vue'),
+    meta: { title: '数据故事' }
   }
 ]
 
