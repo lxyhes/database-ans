@@ -39,14 +39,18 @@ public class AIServiceFactory {
     }
     
     /**
-     * 获取默认的 AI 服务（第一个可用的）
+     * 获取默认的 AI 服务（优先 iFlow）
      */
     public AIService getDefaultService() {
         // 优先返回可用的 iFlow
         if (serviceMap.containsKey("iflow") && serviceMap.get("iflow").isAvailable()) {
             return serviceMap.get("iflow");
         }
-        // 其次返回 mock（总是可用）
+        // 其次返回可用的 DashScope（真实 AI）
+        if (serviceMap.containsKey("dashscope") && serviceMap.get("dashscope").isAvailable()) {
+            return serviceMap.get("dashscope");
+        }
+        // 最后回退到 mock（总是可用）
         if (serviceMap.containsKey("mock")) {
             return serviceMap.get("mock");
         }

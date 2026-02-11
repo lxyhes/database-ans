@@ -34,9 +34,9 @@
                   placeholder="AI 提供商" 
                   style="width: 140px"
                 >
-                  <el-option label="Mock (演示)" value="mock" />
+                  <el-option label="DashScope (推荐)" value="dashscope" />
                   <el-option label="iFlow" value="iflow" />
-                  <el-option label="通义千问" value="qwen" />
+                  <el-option label="Mock (演示)" value="mock" />
                   <el-option label="自动选择" value="" />
                 </el-select>
               </div>
@@ -284,7 +284,7 @@ const loading = ref(false)
 const chatHistory = ref([])
 const dataSources = ref([])
 const selectedDataSource = ref(null)
-const selectedProvider = ref('mock')
+const selectedProvider = ref('')  // 默认自动选择，优先使用真实 AI
 const chatHistoryRef = ref(null)
 
 // 对话框状态

@@ -138,11 +138,12 @@
           </el-col>
           <el-col :span="8">
             <el-form-item label="端口" prop="port">
-              <el-input-number 
-                v-model="form.port" 
-                :min="1" 
+              <el-input 
+                v-model.number="form.port" 
+                placeholder="3306"
+                type="number"
+                :min="1"
                 :max="65535"
-                style="width: 100%"
               />
             </el-form-item>
           </el-col>

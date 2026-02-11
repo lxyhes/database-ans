@@ -41,7 +41,7 @@ public class DataSource {
     /**
      * 数据库名称
      */
-    @Column(nullable = false)
+    @Column(name = "db_name", nullable = false)
     private String database;
     
     /**

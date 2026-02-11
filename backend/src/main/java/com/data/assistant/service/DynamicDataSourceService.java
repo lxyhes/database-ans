@@ -36,15 +36,20 @@ public class DynamicDataSourceService {
     
     @PostConstruct
     public void init() {
-        // 加载默认数据源
-        dataSourceService.getDefaultDataSource().ifPresent(ds -> {
-            try {
-                switchDataSource(ds.getId());
-                logger.info("Default datasource initialized: {}", ds.getName());
-            } catch (Exception e) {
-                logger.error("Failed to initialize default datasource", e);
-            }
-        });
+        // 加载默认数据源（如果有的话）
+        try {
+            dataSourceService.getDefaultDataSource().ifPresent(ds -> {
+                try {
+                    switchDataSource(ds.getId());
+                    logger.info("Default datasource initialized: {}", ds.getName());
+                } catch (Exception e) {
+                    logger.warn("Failed to initialize default datasource: {}", e.getMessage());
+                }
+            });
+        } catch (Exception e) {
+            // 如果没有默认数据源或查询失败，只是记录日志，不阻止应用启动
+            logger.info("No default datasource configured or failed to load: {}", e.getMessage());
+        }
     }
     
     @PreDestroy
