@@ -198,6 +198,12 @@ const loadDataSources = async () => {
   try {
     const res = await request.get('/api/datasources')
     dataSources.value = res.data
+    if (dataSources.value.length > 0) {
+      // 优先选择默认数据源，否则选择第一个
+      const defaultDs = dataSources.value.find(ds => ds.isDefault || ds.default)
+      selectedDataSource.value = defaultDs ? defaultDs.id : dataSources.value[0].id
+      onDataSourceChange()
+    }
   } catch (error) {
     ElMessage.error('加载数据源失败')
   }
@@ -303,6 +309,10 @@ onMounted(() => {
     .header-actions {
       display: flex;
       gap: 10px;
+
+      .el-select {
+        width: 200px;
+      }
     }
   }
 

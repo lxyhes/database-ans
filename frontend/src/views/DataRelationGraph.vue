@@ -98,7 +98,9 @@ const loadDataSources = async () => {
     const res = await request.get('/api/datasources')
     dataSources.value = res.data
     if (dataSources.value.length > 0) {
-      selectedDataSource.value = dataSources.value[0].id
+      // 优先选择默认数据源，否则选择第一个
+      const defaultDs = dataSources.value.find(ds => ds.isDefault || ds.default)
+      selectedDataSource.value = defaultDs ? defaultDs.id : dataSources.value[0].id
       loadGraphData()
     }
   } catch (error) {
