@@ -101,14 +101,54 @@ public class DataQueryService {
      * 获取所有表名（使用当前数据源）
      */
     public List<String> getAllTableNames() {
+        List<String> tables = new ArrayList<>();
         try {
             JdbcTemplate jdbcTemplate = dynamicDataSourceService.getCurrentJdbcTemplate();
-            String sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'PUBLIC'";
-            return jdbcTemplate.queryForList(sql, String.class);
+
+            // 方式1: MySQL - SHOW TABLES
+            try {
+                tables = jdbcTemplate.queryForList("SHOW TABLES", String.class);
+                if (!tables.isEmpty()) {
+                    return tables;
+                }
+            } catch (Exception ex) {
+                logger.debug("MySQL SHOW TABLES failed, trying next method");
+            }
+
+            // 方式2: PostgreSQL
+            try {
+                tables = jdbcTemplate.queryForList(
+                    "SELECT tablename FROM pg_tables WHERE schemaname = 'public'", String.class);
+                if (!tables.isEmpty()) {
+                    return tables;
+                }
+            } catch (Exception ex) {
+                logger.debug("PostgreSQL query failed, trying next method");
+            }
+
+            // 方式3: H2
+            try {
+                tables = jdbcTemplate.queryForList(
+                    "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'PUBLIC'", String.class);
+                if (!tables.isEmpty()) {
+                    return tables;
+                }
+            } catch (Exception ex) {
+                logger.debug("H2 query failed, trying next method");
+            }
+
+            // 方式4: 通用 INFORMATION_SCHEMA
+            try {
+                tables = jdbcTemplate.queryForList(
+                    "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'", String.class);
+            } catch (Exception ex) {
+                logger.error("All methods failed to get table names", ex);
+            }
+
         } catch (Exception e) {
             logger.error("Failed to get table names", e);
-            return new ArrayList<>();
         }
+        return tables;
     }
 
     /**

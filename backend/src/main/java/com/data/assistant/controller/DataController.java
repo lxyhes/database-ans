@@ -3,6 +3,7 @@ package com.data.assistant.controller;
 import com.data.assistant.model.QueryResponse;
 import com.data.assistant.service.DataQueryService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,34 +25,50 @@ public class DataController {
      * 获取数据摘要
      */
     @GetMapping("/summary")
-    public String getDataSummary() {
-        return dataQueryService.getDataSummary();
+    public ResponseEntity<?> getDataSummary() {
+        String summary = dataQueryService.getDataSummary();
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "data", summary
+        ));
     }
 
     /**
      * 获取表结构
      */
     @GetMapping("/schema/{tableName}")
-    public Map<String, Object> getTableSchema(@PathVariable String tableName) {
-        return dataQueryService.getTableSchema(tableName);
+    public ResponseEntity<?> getTableSchema(@PathVariable String tableName) {
+        Map<String, Object> schema = dataQueryService.getTableSchema(tableName);
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "data", schema
+        ));
     }
 
     /**
      * 获取所有表名
      */
     @GetMapping("/tables")
-    public List<String> getAllTables(@RequestParam(required = false) Long dataSourceId) {
+    public ResponseEntity<?> getAllTables(@RequestParam(required = false) Long dataSourceId) {
         if (dataSourceId != null) {
             dataQueryService.switchDataSource(dataSourceId);
         }
-        return dataQueryService.getAllTableNames();
+        List<String> tables = dataQueryService.getAllTableNames();
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "data", tables
+        ));
     }
 
     /**
      * 获取样本数据
      */
     @GetMapping("/sample/{tableName}")
-    public List<Map<String, Object>> getSampleData(@PathVariable String tableName, @RequestParam(defaultValue = "5") int limit) {
-        return dataQueryService.getSampleData(tableName, limit);
+    public ResponseEntity<?> getSampleData(@PathVariable String tableName, @RequestParam(defaultValue = "5") int limit) {
+        List<Map<String, Object>> sampleData = dataQueryService.getSampleData(tableName, limit);
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "data", sampleData
+        ));
     }
 }

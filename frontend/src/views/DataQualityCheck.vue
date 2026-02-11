@@ -197,20 +197,25 @@ const report = ref(null)
 const loadDataSources = async () => {
   try {
     const res = await request.get('/api/datasources')
+    console.log('Data sources response:', res)
     dataSources.value = res.data
+    console.log('Data sources:', dataSources.value)
     if (dataSources.value.length > 0) {
       // 优先选择默认数据源，否则选择第一个
       const defaultDs = dataSources.value.find(ds => ds.isDefault || ds.default)
       selectedDataSource.value = defaultDs ? defaultDs.id : dataSources.value[0].id
+      console.log('Selected data source:', selectedDataSource.value)
       onDataSourceChange()
     }
   } catch (error) {
+    console.error('加载数据源失败:', error)
     ElMessage.error('加载数据源失败')
   }
 }
 
 // 数据源变化
 const onDataSourceChange = async () => {
+  console.log('onDataSourceChange called, selectedDataSource:', selectedDataSource.value)
   selectedTable.value = null
   tables.value = []
   if (!selectedDataSource.value) return
@@ -219,8 +224,12 @@ const onDataSourceChange = async () => {
     const res = await request.get('/api/data/tables', {
       params: { dataSourceId: selectedDataSource.value }
     })
-    tables.value = res.data
+    console.log('Tables response:', res)
+    // 兼容两种返回格式: {success: true, data: [...]} 或 [...]
+    tables.value = res.data || res
+    console.log('Tables set to:', tables.value)
   } catch (error) {
+    console.error('加载数据表失败:', error)
     ElMessage.error('加载数据表失败')
   }
 }
