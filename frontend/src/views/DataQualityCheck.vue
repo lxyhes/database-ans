@@ -13,7 +13,7 @@
                 :value="ds.id"
               />
             </el-select>
-            <el-select v-model="selectedTable" placeholder="选择数据表" :disabled="!tables.length">
+            <el-select v-model="selectedTable" placeholder="选择数据表" :disabled="!tables?.length">
               <el-option
                 v-for="table in tables"
                 :key="table"

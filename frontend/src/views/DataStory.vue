@@ -8,7 +8,7 @@
             <el-select v-model="selectedDataSource" placeholder="选择数据源" @change="onDataSourceChange">
               <el-option v-for="ds in dataSources" :key="ds.id" :label="ds.name" :value="ds.id" />
             </el-select>
-            <el-select v-model="selectedTable" placeholder="选择数据表" :disabled="!tables.length">
+            <el-select v-model="selectedTable" placeholder="选择数据表" :disabled="!tables?.length">
               <el-option v-for="table in tables" :key="table" :label="table" :value="table" />
             </el-select>
             <el-button type="primary" @click="generateStory" :loading="generating" :disabled="!selectedTable">
