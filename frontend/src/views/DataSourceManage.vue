@@ -99,10 +99,98 @@
 
           <div class="datasource-footer">
             <span class="update-time">更新于 {{ formatDate(ds.updatedAt) }}</span>
+            <el-button 
+              v-if="ds.connectionStatus === 'connected'"
+              type="primary" 
+              link 
+              size="small"
+              @click="openTableDrawer(ds)"
+            >
+              <el-icon><Grid /></el-icon>
+              查看表结构
+            </el-button>
           </div>
         </el-card>
       </el-col>
     </el-row>
+
+    <!-- 表结构抽屉 -->
+    <el-drawer
+      v-model="tableDrawerVisible"
+      :title="currentDataSource ? `${currentDataSource.name} - 表结构` : '表结构'"
+      size="600px"
+      destroy-on-close
+    >
+      <div class="table-drawer-content">
+        <div class="drawer-header">
+          <el-input
+            v-model="tableSearchKeyword"
+            placeholder="搜索表名"
+            clearable
+            style="width: 250px"
+          >
+            <template #prefix>
+              <el-icon><Search /></el-icon>
+            </template>
+          </el-input>
+          <el-button 
+            type="primary" 
+            @click="refreshTables"
+            :loading="tableLoading"
+          >
+            <el-icon><Refresh /></el-icon>
+            刷新
+          </el-button>
+        </div>
+
+        <div class="table-list-container" v-loading="tableLoading">
+          <el-empty v-if="filteredTables.length === 0" description="暂无表数据" />
+          
+          <el-collapse v-else v-model="expandedTables" accordion @change="handleTableExpand">
+            <el-collapse-item 
+              v-for="table in filteredTables" 
+              :key="table.name"
+              :name="table.name"
+            >
+              <template #title>
+                <div class="table-header-item">
+                  <div class="table-title">
+                    <el-icon><Grid /></el-icon>
+                    <span class="table-name">{{ table.name }}</span>
+                    <el-tag v-if="table.rowCount !== undefined && table.rowCount !== null" size="small" type="info">
+                      {{ table.rowCount }} 行
+                    </el-tag>
+                  </div>
+                  <span v-if="table.comment" class="table-comment">{{ table.comment }}</span>
+                </div>
+              </template>
+              
+              <!-- 列信息表格 -->
+              <div class="column-table-wrapper" v-loading="table.loadingColumns">
+                <el-table 
+                  :data="table.columns" 
+                  size="small"
+                  border
+                  style="width: 100%"
+                >
+                  <el-table-column prop="name" label="列名" min-width="120" show-overflow-tooltip />
+                  <el-table-column prop="type" label="数据类型" width="120" show-overflow-tooltip />
+                  <el-table-column prop="nullable" label="可空" width="70" align="center">
+                    <template #default="{ row }">
+                      <el-tag size="small" :type="row.nullable === 'YES' ? 'info' : 'success'">
+                        {{ row.nullable === 'YES' ? '是' : '否' }}
+                      </el-tag>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="defaultValue" label="默认值" width="100" show-overflow-tooltip />
+                  <el-table-column prop="comment" label="注释" min-width="150" show-overflow-tooltip />
+                </el-table>
+              </div>
+            </el-collapse-item>
+          </el-collapse>
+        </div>
+      </div>
+    </el-drawer>
 
     <!-- 添加/编辑对话框 -->
     <el-dialog
@@ -196,11 +284,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, onMounted, watch, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Plus, Coin, DataLine, Collection, More,
-  Edit, Delete, Connection, Star
+  Edit, Delete, Connection, Star, Refresh, Grid, Search
 } from '@element-plus/icons-vue'
 import {
   getDataSources,
@@ -209,7 +297,9 @@ import {
   deleteDataSource,
   testDataSourceConnection,
   setDefaultDataSource,
-  getSupportedDatabaseTypes
+  getSupportedDatabaseTypes,
+  getDataSourceTables,
+  getTableColumns
 } from '@/api/datasource'
 
 const dataSources = ref([])
@@ -219,6 +309,14 @@ const submitting = ref(false)
 const testing = ref(false)
 const formRef = ref(null)
 const databaseTypes = ref({})
+
+// 表结构抽屉相关
+const tableDrawerVisible = ref(false)
+const currentDataSource = ref(null)
+const tableList = ref([])
+const tableLoading = ref(false)
+const tableSearchKeyword = ref('')
+const expandedTables = ref([])
 
 const defaultPorts = {
   mysql: 3306,
@@ -408,6 +506,7 @@ const handleTestSingleConnection = async (row) => {
     const res = await testDataSourceConnection(row)
     if (res.success) {
       ElMessage.success('连接成功')
+      loadDataSources()
     } else {
       ElMessage.error(res.message || '连接失败')
     }
@@ -415,6 +514,73 @@ const handleTestSingleConnection = async (row) => {
     ElMessage.error('连接测试失败')
   }
 }
+
+// 打开表结构抽屉
+const openTableDrawer = async (ds) => {
+  currentDataSource.value = ds
+  tableDrawerVisible.value = true
+  tableSearchKeyword.value = ''
+  expandedTables.value = []
+  await loadTableList()
+}
+
+// 加载表列表
+const loadTableList = async () => {
+  if (!currentDataSource.value) return
+  
+  tableLoading.value = true
+  try {
+    const res = await getDataSourceTables(currentDataSource.value.id)
+    if (res.success) {
+      tableList.value = res.data.map(table => ({
+        ...table,
+        columns: [],
+        loadingColumns: false
+      }))
+    } else {
+      ElMessage.error(res.message || '加载表列表失败')
+    }
+  } catch (error) {
+    ElMessage.error('加载表列表失败')
+  } finally {
+    tableLoading.value = false
+  }
+}
+
+// 刷新表列表
+const refreshTables = () => {
+  loadTableList()
+}
+
+// 监听展开事件加载列信息
+const handleTableExpand = async (tableName) => {
+  const table = tableList.value.find(t => t.name === tableName)
+  if (!table || table.columns.length > 0) return
+  
+  table.loadingColumns = true
+  try {
+    const res = await getTableColumns(currentDataSource.value.id, tableName)
+    if (res.success) {
+      table.columns = res.data
+    } else {
+      ElMessage.error(res.message || '加载列信息失败')
+    }
+  } catch (error) {
+    ElMessage.error('加载列信息失败')
+  } finally {
+    table.loadingColumns = false
+  }
+}
+
+// 过滤后的表列表
+const filteredTables = computed(() => {
+  if (!tableSearchKeyword.value) return tableList.value
+  const keyword = tableSearchKeyword.value.toLowerCase()
+  return tableList.value.filter(table => 
+    table.name.toLowerCase().includes(keyword) ||
+    (table.comment && table.comment.toLowerCase().includes(keyword))
+  )
+})
 
 const resetForm = () => {
   form.id = null
@@ -550,5 +716,62 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+// 抽屉样式
+.table-drawer-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  
+  .drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #ebeef5;
+  }
+  
+  .table-list-container {
+    flex: 1;
+    overflow-y: auto;
+    
+    .table-header-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 4px 0;
+      
+      .table-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        
+        .el-icon {
+          color: #409eff;
+        }
+        
+        .table-name {
+          font-weight: 500;
+          color: #303133;
+        }
+      }
+      
+      .table-comment {
+        color: #909399;
+        font-size: 12px;
+        padding-left: 24px;
+      }
+    }
+    
+    .column-table-wrapper {
+      padding: 8px 0;
+    }
+  }
+}
+
+:deep(.el-drawer__body) {
+  padding: 20px;
 }
 </style>

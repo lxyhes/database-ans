@@ -70,8 +70,15 @@ export function getSupportedDatabaseTypes() {
 // 获取数据源的表列表
 export function getDataSourceTables(dataSourceId) {
   return request({
-    url: '/api/data/tables',
-    method: 'get',
-    params: { dataSourceId }
+    url: `/api/datasources/${dataSourceId}/tables`,
+    method: 'get'
+  })
+}
+
+// 获取表的列信息
+export function getTableColumns(dataSourceId, tableName) {
+  return request({
+    url: `/api/datasources/${dataSourceId}/tables/${tableName}/columns`,
+    method: 'get'
   })
 }

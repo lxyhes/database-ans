@@ -22,10 +22,26 @@ public class DataQueryService {
     private DynamicDataSourceService dynamicDataSourceService;
 
     /**
+     * 清理 SQL（移除 Markdown 代码块标记等）
+     */
+    private String cleanSql(String sql) {
+        if (sql == null || sql.isEmpty()) {
+            return sql;
+        }
+        // 移除 Markdown 代码块标记
+        sql = sql.replaceAll("```sql", "");
+        sql = sql.replaceAll("```", "");
+        // 移除前后空白
+        sql = sql.trim();
+        return sql;
+    }
+
+    /**
      * 执行 SQL 查询（使用当前数据源）
      */
     public List<Map<String, Object>> executeQuery(String sql) {
         try {
+            sql = cleanSql(sql);
             logger.info("Executing SQL query: {}", sql);
             JdbcTemplate jdbcTemplate = dynamicDataSourceService.getCurrentJdbcTemplate();
             List<Map<String, Object>> results = jdbcTemplate.queryForList(sql);
@@ -42,6 +58,7 @@ public class DataQueryService {
      */
     public List<Map<String, Object>> executeQuery(Long dataSourceId, String sql) {
         try {
+            sql = cleanSql(sql);
             logger.info("Executing SQL query on datasource {}: {}", dataSourceId, sql);
             JdbcTemplate jdbcTemplate = dynamicDataSourceService.getJdbcTemplate(dataSourceId);
             List<Map<String, Object>> results = jdbcTemplate.queryForList(sql);

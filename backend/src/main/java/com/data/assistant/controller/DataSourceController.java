@@ -202,4 +202,46 @@ public class DataSourceController {
             "data", types
         ));
     }
+    
+    /**
+     * 获取数据源的所有表
+     */
+    @GetMapping("/{id}/tables")
+    public ResponseEntity<?> getDataSourceTables(@PathVariable Long id) {
+        try {
+            List<Map<String, Object>> tables = dataSourceService.getDataSourceTables(id);
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "data", tables
+            ));
+        } catch (Exception e) {
+            logger.error("Failed to get tables for datasource {}", id, e);
+            return ResponseEntity.ok(Map.of(
+                "success", false,
+                "message", e.getMessage()
+            ));
+        }
+    }
+    
+    /**
+     * 获取表的列信息
+     */
+    @GetMapping("/{id}/tables/{tableName}/columns")
+    public ResponseEntity<?> getTableColumns(
+            @PathVariable Long id,
+            @PathVariable String tableName) {
+        try {
+            List<Map<String, Object>> columns = dataSourceService.getTableColumns(id, tableName);
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "data", columns
+            ));
+        } catch (Exception e) {
+            logger.error("Failed to get columns for table {} in datasource {}", tableName, id, e);
+            return ResponseEntity.ok(Map.of(
+                "success", false,
+                "message", e.getMessage()
+            ));
+        }
+    }
 }

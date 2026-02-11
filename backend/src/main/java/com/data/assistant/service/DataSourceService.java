@@ -6,12 +6,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -229,5 +231,94 @@ public class DataSourceService {
         
         newDefault.setIsDefault(true);
         dataSourceRepository.save(newDefault);
+    }
+    
+    /**
+     * 获取数据源的所有表
+     */
+    public List<Map<String, Object>> getDataSourceTables(Long dataSourceId) {
+        DataSource dataSource = dataSourceRepository.findById(dataSourceId)
+            .orElseThrow(() -> new IllegalArgumentException("数据源不存在"));
+        
+        try {
+            JdbcTemplate jdbcTemplate = dynamicDataSourceService.getJdbcTemplate(dataSourceId);
+            
+            String sql;
+            String type = dataSource.getType().toLowerCase();
+            
+            switch (type) {
+                case "mysql":
+                    sql = "SELECT table_name as name, table_comment as comment, table_rows as rowCount " +
+                          "FROM information_schema.tables " +
+                          "WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE'";
+                    break;
+                case "postgresql":
+                    sql = "SELECT table_name as name, '' as comment, 0 as rowCount " +
+                          "FROM information_schema.tables " +
+                          "WHERE table_schema = 'public' AND table_type = 'BASE TABLE'";
+                    break;
+                case "h2":
+                    sql = "SELECT table_name as name, '' as comment, 0 as rowCount " +
+                          "FROM information_schema.tables " +
+                          "WHERE table_schema = 'PUBLIC'";
+                    break;
+                default:
+                    throw new IllegalArgumentException("不支持的数据库类型: " + type);
+            }
+            
+            return jdbcTemplate.queryForList(sql);
+        } catch (Exception e) {
+            logger.error("Failed to get tables for datasource {}", dataSourceId, e);
+            throw new RuntimeException("获取表列表失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取表的列信息
+     */
+    public List<Map<String, Object>> getTableColumns(Long dataSourceId, String tableName) {
+        DataSource dataSource = dataSourceRepository.findById(dataSourceId)
+            .orElseThrow(() -> new IllegalArgumentException("数据源不存在"));
+        
+        try {
+            JdbcTemplate jdbcTemplate = dynamicDataSourceService.getJdbcTemplate(dataSourceId);
+            
+            String sql;
+            String type = dataSource.getType().toLowerCase();
+            
+            switch (type) {
+                case "mysql":
+                    sql = String.format(
+                        "SELECT column_name as name, data_type as type, column_comment as comment, " +
+                        "is_nullable as nullable, column_default as defaultValue " +
+                        "FROM information_schema.columns " +
+                        "WHERE table_schema = DATABASE() AND table_name = '%s' " +
+                        "ORDER BY ordinal_position", tableName);
+                    break;
+                case "postgresql":
+                    sql = String.format(
+                        "SELECT column_name as name, data_type as type, '' as comment, " +
+                        "is_nullable as nullable, column_default as defaultValue " +
+                        "FROM information_schema.columns " +
+                        "WHERE table_schema = 'public' AND table_name = '%s' " +
+                        "ORDER BY ordinal_position", tableName);
+                    break;
+                case "h2":
+                    sql = String.format(
+                        "SELECT column_name as name, type_name as type, '' as comment, " +
+                        "is_nullable as nullable, column_default as defaultValue " +
+                        "FROM information_schema.columns " +
+                        "WHERE table_schema = 'PUBLIC' AND table_name = '%s' " +
+                        "ORDER by ordinal_position", tableName);
+                    break;
+                default:
+                    throw new IllegalArgumentException("不支持的数据库类型: " + type);
+            }
+            
+            return jdbcTemplate.queryForList(sql);
+        } catch (Exception e) {
+            logger.error("Failed to get columns for table {} in datasource {}", tableName, dataSourceId, e);
+            throw new RuntimeException("获取列信息失败: " + e.getMessage());
+        }
     }
 }
