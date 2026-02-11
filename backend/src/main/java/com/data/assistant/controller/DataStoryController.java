@@ -1,5 +1,6 @@
 package com.data.assistant.controller;
 
+import com.data.assistant.common.ApiResponse;
 import com.data.assistant.service.DataStoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -22,9 +23,9 @@ public class DataStoryController {
             String tableName = (String) request.get("tableName");
             
             Map<String, Object> story = dataStoryService.generateDataStory(dataSourceId, tableName);
-            return ResponseEntity.ok(story);
+            return ResponseEntity.ok(ApiResponse.success(story));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("生成失败: " + e.getMessage());
+            return ResponseEntity.badRequest().body(ApiResponse.error("生成失败: " + e.getMessage()));
         }
     }
 
@@ -36,9 +37,9 @@ public class DataStoryController {
             String compareColumn = (String) request.get("compareColumn");
             
             Map<String, Object> story = dataStoryService.generateComparisonStory(dataSourceId, tableName, compareColumn);
-            return ResponseEntity.ok(story);
+            return ResponseEntity.ok(ApiResponse.success(story));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("生成失败: " + e.getMessage());
+            return ResponseEntity.badRequest().body(ApiResponse.error("生成失败: " + e.getMessage()));
         }
     }
 }

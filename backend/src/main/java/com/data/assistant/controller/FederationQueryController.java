@@ -1,5 +1,6 @@
 package com.data.assistant.controller;
 
+import com.data.assistant.common.ApiResponse;
 import com.data.assistant.service.FederationQueryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -23,9 +24,9 @@ public class FederationQueryController {
             String sql = (String) request.get("sql");
             
             Map<String, Object> result = federationQueryService.executeFederationQuery(dataSourceIds, sql);
-            return ResponseEntity.ok(result);
+            return ResponseEntity.ok(ApiResponse.success(result));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("查询失败: " + e.getMessage());
+            return ResponseEntity.badRequest().body(ApiResponse.error("查询失败: " + e.getMessage()));
         }
     }
 
@@ -40,9 +41,9 @@ public class FederationQueryController {
             
             Map<String, Object> result = federationQueryService.joinAcrossDataSources(
                 leftDsId, leftTable, rightDsId, rightTable, joinColumn);
-            return ResponseEntity.ok(result);
+            return ResponseEntity.ok(ApiResponse.success(result));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("JOIN失败: " + e.getMessage());
+            return ResponseEntity.badRequest().body(ApiResponse.error("JOIN失败: " + e.getMessage()));
         }
     }
 
@@ -57,9 +58,9 @@ public class FederationQueryController {
             
             List<Map<String, Object>> results = federationQueryService.aggregateAcrossDataSources(
                 dataSourceIds, tableName, aggColumn, aggFunction);
-            return ResponseEntity.ok(results);
+            return ResponseEntity.ok(ApiResponse.success(results));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("聚合失败: " + e.getMessage());
+            return ResponseEntity.badRequest().body(ApiResponse.error("聚合失败: " + e.getMessage()));
         }
     }
 }

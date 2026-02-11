@@ -1,5 +1,6 @@
 package com.data.assistant.controller;
 
+import com.data.assistant.common.ApiResponse;
 import com.data.assistant.model.SensitiveColumn;
 import com.data.assistant.service.SensitiveDataService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,13 +23,13 @@ public class SensitiveDataController {
             @RequestBody Map<String, String> request) {
         String tableName = request.get("tableName");
         sensitiveDataService.scanTable(dataSourceId, tableName);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(ApiResponse.success());
     }
 
     @GetMapping("/{dataSourceId}")
     public ResponseEntity<?> getSensitiveColumns(@PathVariable Long dataSourceId) {
         List<SensitiveColumn> columns = sensitiveDataService.getSensitiveColumns(dataSourceId);
-        return ResponseEntity.ok(columns);
+        return ResponseEntity.ok(ApiResponse.success(columns));
     }
 
     @GetMapping("/{dataSourceId}/table/{tableName}")
@@ -36,13 +37,13 @@ public class SensitiveDataController {
             @PathVariable Long dataSourceId,
             @PathVariable String tableName) {
         List<SensitiveColumn> columns = sensitiveDataService.getSensitiveColumns(dataSourceId, tableName);
-        return ResponseEntity.ok(columns);
+        return ResponseEntity.ok(ApiResponse.success(columns));
     }
 
     @GetMapping("/{dataSourceId}/overview")
     public ResponseEntity<?> getOverview(@PathVariable Long dataSourceId) {
         Map<String, Object> overview = sensitiveDataService.getSensitiveDataOverview(dataSourceId);
-        return ResponseEntity.ok(overview);
+        return ResponseEntity.ok(ApiResponse.success(overview));
     }
 
     @PutMapping("/config/{columnId}")
@@ -52,12 +53,12 @@ public class SensitiveDataController {
         Boolean isMasked = (Boolean) request.get("isMasked");
         String maskRule = (String) request.get("maskRule");
         sensitiveDataService.updateMaskConfig(columnId, isMasked, maskRule);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(ApiResponse.success());
     }
 
     @DeleteMapping("/{columnId}")
     public ResponseEntity<?> deleteSensitiveColumn(@PathVariable Long columnId) {
         sensitiveDataService.deleteSensitiveColumn(columnId);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(ApiResponse.success());
     }
 }

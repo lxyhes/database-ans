@@ -1,5 +1,6 @@
 package com.data.assistant.controller;
 
+import com.data.assistant.common.ApiResponse;
 import com.data.assistant.model.Conversation;
 import com.data.assistant.model.ConversationMessage;
 import com.data.assistant.service.ConversationService;
@@ -24,37 +25,37 @@ public class ConversationController {
         String title = (String) request.get("title");
 
         Conversation conversation = conversationService.createConversation(dataSourceId, provider, title);
-        return ResponseEntity.ok(conversation);
+        return ResponseEntity.ok(ApiResponse.success(conversation));
     }
 
     @GetMapping
     public ResponseEntity<?> getConversations(@RequestParam(required = false) Long dataSourceId) {
         List<Conversation> conversations = conversationService.getActiveConversations(dataSourceId);
-        return ResponseEntity.ok(conversations);
+        return ResponseEntity.ok(ApiResponse.success(conversations));
     }
 
     @GetMapping("/{sessionId}")
     public ResponseEntity<?> getConversation(@PathVariable String sessionId) {
         Map<String, Object> conversation = conversationService.getConversationDetail(sessionId);
-        return ResponseEntity.ok(conversation);
+        return ResponseEntity.ok(ApiResponse.success(conversation));
     }
 
     @GetMapping("/{sessionId}/messages")
     public ResponseEntity<?> getConversationMessages(@PathVariable String sessionId) {
         List<ConversationMessage> messages = conversationService.getConversationHistory(sessionId);
-        return ResponseEntity.ok(messages);
+        return ResponseEntity.ok(ApiResponse.success(messages));
     }
 
     @PostMapping("/{sessionId}/messages")
     public ResponseEntity<?> addMessage(@PathVariable String sessionId, @RequestBody Map<String, Object> request) {
         String content = (String) request.get("content");
         conversationService.saveUserMessage(sessionId, content);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(ApiResponse.success());
     }
 
     @DeleteMapping("/{sessionId}")
     public ResponseEntity<?> deleteConversation(@PathVariable String sessionId) {
         conversationService.deactivateConversation(sessionId);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(ApiResponse.success());
     }
 }

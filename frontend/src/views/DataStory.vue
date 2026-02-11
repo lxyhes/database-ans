@@ -142,7 +142,8 @@ const onDataSourceChange = async () => {
     const res = await request.get('/api/data/tables', {
       params: { dataSourceId: selectedDataSource.value }
     })
-    tables.value = res.data
+    // 兼容两种返回格式: {success: true, data: [...]} 或 [...]
+    tables.value = res.data || res
   } catch (error) {
     ElMessage.error('加载数据表失败')
   }
@@ -157,7 +158,8 @@ const generateStory = async () => {
       dataSourceId: selectedDataSource.value,
       tableName: selectedTable.value
     })
-    story.value = res.data
+    // 兼容两种返回格式: {success: true, data: {...}} 或 {...}
+    story.value = res.data || res
     ElMessage.success('数据故事生成成功')
   } catch (error) {
     ElMessage.error('生成失败')

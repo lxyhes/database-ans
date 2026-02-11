@@ -1,5 +1,6 @@
 package com.data.assistant.controller;
 
+import com.data.assistant.common.ApiResponse;
 import com.data.assistant.model.DataQualityReport;
 import com.data.assistant.service.DataQualityService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,6 @@ public class DataQualityController {
             @PathVariable Long dataSourceId,
             @RequestParam String tableName) {
         DataQualityReport report = dataQualityService.checkTableQuality(dataSourceId, tableName);
-        return ResponseEntity.ok(report);
+        return ResponseEntity.ok(ApiResponse.success(report));
     }
 }
