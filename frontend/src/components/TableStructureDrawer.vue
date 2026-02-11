@@ -18,70 +18,91 @@
             <el-icon><Search /></el-icon>
           </template>
         </el-input>
-        <el-button 
-          type="primary" 
-          @click="refreshTables"
-          :loading="loading"
-        >
-          <el-icon><Refresh /></el-icon>
-          刷新
-        </el-button>
+        <div class="header-actions">
+          <span class="table-count">共 {{ filteredTables.length }} 个表</span>
+          <el-button 
+            type="primary" 
+            @click="refreshTables"
+            :loading="loading"
+          >
+            <el-icon><Refresh /></el-icon>
+            刷新
+          </el-button>
+        </div>
       </div>
 
       <div class="table-list-container" v-loading="loading">
         <el-empty v-if="filteredTables.length === 0" description="暂无表数据" />
         
-        <el-collapse v-else v-model="expandedTables" accordion @change="handleTableExpand">
-          <el-collapse-item 
-            v-for="table in filteredTables" 
+        <!-- 使用虚拟滚动列表 -->
+        <div v-else class="virtual-list-container" ref="listContainerRef">
+          <div
+            v-for="table in displayedTables"
             :key="table.name"
-            :name="table.name"
+            class="table-item"
+            :class="{ 'is-expanded': expandedTable === table.name }"
           >
-            <template #title>
-              <div class="table-header-item">
+            <!-- 表头 -->
+            <div class="table-header" @click="toggleTable(table.name)">
+              <el-icon class="expand-icon"><ArrowRight /></el-icon>
+              <div class="table-info">
                 <div class="table-title">
                   <el-icon><Grid /></el-icon>
                   <span class="table-name">{{ table.name }}</span>
-                  <el-tag v-if="table.rowCount !== undefined && table.rowCount !== null" size="small" type="info">
-                    {{ table.rowCount }} 行
+                  <el-tag v-if="table.rowCount !== undefined && table.rowCount !== null" size="small" type="info" effect="plain">
+                    {{ formatRowCount(table.rowCount) }}
                   </el-tag>
                 </div>
                 <span v-if="table.comment" class="table-comment">{{ table.comment }}</span>
               </div>
-            </template>
-            
-            <!-- 列信息表格 -->
-            <div class="column-table-wrapper" v-loading="table.loadingColumns">
-              <el-table 
-                :data="table.columns" 
-                size="small"
-                border
-                style="width: 100%"
-              >
-                <el-table-column prop="name" label="列名" min-width="120" show-overflow-tooltip />
-                <el-table-column prop="type" label="数据类型" width="120" show-overflow-tooltip />
-                <el-table-column prop="nullable" label="可空" width="70" align="center">
-                  <template #default="{ row }">
-                    <el-tag size="small" :type="row.nullable === 'YES' ? 'info' : 'success'">
-                      {{ row.nullable === 'YES' ? '是' : '否' }}
-                    </el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="defaultValue" label="默认值" width="100" show-overflow-tooltip />
-                <el-table-column prop="comment" label="注释" min-width="150" show-overflow-tooltip />
-              </el-table>
             </div>
-          </el-collapse-item>
-        </el-collapse>
+            
+            <!-- 列信息 - 懒加载渲染 -->
+            <div v-if="expandedTable === table.name" class="table-content">
+              <div v-if="table.loadingColumns" class="loading-state">
+                <el-icon class="is-loading"><Loading /></el-icon>
+                加载中...
+              </div>
+              <div v-else-if="table.columns.length > 0" class="column-list">
+                <el-table
+                  :data="table.columns"
+                  size="small"
+                  border
+                  style="width: 100%"
+                  :header-cell-style="{ background: '#f5f7fa', fontWeight: 500 }"
+                >
+                  <el-table-column prop="name" label="列名" min-width="100" show-overflow-tooltip />
+                  <el-table-column prop="type" label="类型" width="80" show-overflow-tooltip />
+                  <el-table-column prop="nullable" label="可空" width="50" align="center">
+                    <template #default="{ row }">
+                      <el-tag size="small" :type="row.nullable === 'YES' ? 'info' : 'success'">
+                        {{ row.nullable === 'YES' ? '是' : '否' }}
+                      </el-tag>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="comment" label="注释" min-width="120" show-overflow-tooltip />
+                </el-table>
+              </div>
+              <div v-else class="empty-state">暂无列信息</div>
+            </div>
+          </div>
+          
+          <!-- 加载更多提示 -->
+          <div v-if="hasMoreTables" class="load-more">
+            <el-button link size="small" @click="loadMore">
+              加载更多 (还有 {{ filteredTables.length - displayedTables.length }} 个)
+            </el-button>
+          </div>
+        </div>
       </div>
     </div>
   </el-drawer>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Grid, Refresh, Search } from '@element-plus/icons-vue'
+import { Grid, Refresh, Search, ArrowRight, Loading } from '@element-plus/icons-vue'
 import { getDataSourceTables, getTableColumns } from '@/api/datasource'
 
 const props = defineProps({
@@ -110,7 +131,24 @@ const visible = computed({
 const tableList = ref([])
 const loading = ref(false)
 const searchKeyword = ref('')
-const expandedTables = ref([])
+const expandedTable = ref(null)
+const displayLimit = ref(50) // 初始显示50个表
+const listContainerRef = ref(null)
+
+// 防抖搜索
+let searchTimeout = null
+const debouncedSearch = (val) => {
+  clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    searchKeyword.value = val
+    displayLimit.value = 50 // 重置显示数量
+  }, 300)
+}
+
+// 监听搜索输入
+watch(() => searchKeyword.value, (val) => {
+  displayLimit.value = 50
+})
 
 // 过滤后的表列表
 const filteredTables = computed(() => {
@@ -122,10 +160,36 @@ const filteredTables = computed(() => {
   )
 })
 
+// 分页显示的表
+const displayedTables = computed(() => {
+  return filteredTables.value.slice(0, displayLimit.value)
+})
+
+// 是否还有更多
+const hasMoreTables = computed(() => {
+  return filteredTables.value.length > displayLimit.value
+})
+
+// 格式化行数
+const formatRowCount = (count) => {
+  if (count >= 1000000) {
+    return (count / 1000000).toFixed(1) + 'M'
+  } else if (count >= 1000) {
+    return (count / 1000).toFixed(1) + 'K'
+  }
+  return count
+}
+
+// 加载更多
+const loadMore = () => {
+  displayLimit.value += 50
+}
+
 // 处理抽屉打开
 const handleOpen = () => {
   searchKeyword.value = ''
-  expandedTables.value = []
+  expandedTable.value = null
+  displayLimit.value = 50
   loadTableList()
 }
 
@@ -140,7 +204,8 @@ const loadTableList = async () => {
       tableList.value = res.data.map(table => ({
         ...table,
         columns: [],
-        loadingColumns: false
+        loadingColumns: false,
+        loaded: false
       }))
     } else {
       ElMessage.error(res.message || '加载表列表失败')
@@ -157,16 +222,24 @@ const refreshTables = () => {
   loadTableList()
 }
 
-// 监听展开事件加载列信息
-const handleTableExpand = async (tableName) => {
+// 切换表展开/收起
+const toggleTable = async (tableName) => {
+  if (expandedTable.value === tableName) {
+    expandedTable.value = null
+    return
+  }
+  
+  expandedTable.value = tableName
+  
   const table = tableList.value.find(t => t.name === tableName)
-  if (!table || table.columns.length > 0) return
+  if (!table || table.loaded) return
   
   table.loadingColumns = true
   try {
     const res = await getTableColumns(props.dataSourceId, tableName)
     if (res.success) {
       table.columns = res.data
+      table.loaded = true
     } else {
       ElMessage.error(res.message || '加载列信息失败')
     }
@@ -198,47 +271,151 @@ watch(() => props.dataSourceId, () => {
     padding-bottom: 16px;
     margin-bottom: 16px;
     border-bottom: 1px solid #ebeef5;
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .table-count {
+        color: #909399;
+        font-size: 13px;
+      }
+    }
   }
 
   .table-list-container {
     flex: 1;
     overflow-y: auto;
 
-    .table-header-item {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      padding: 4px 0;
+    .virtual-list-container {
+      .table-item {
+        border-bottom: 1px solid #f0f0f0;
 
-      .table-title {
-        display: flex;
-        align-items: center;
-        gap: 8px;
+        &.is-expanded {
+          .table-header {
+            background: #f5f7fa;
 
-        .el-icon {
-          color: #409eff;
+            .expand-icon {
+              transform: rotate(90deg);
+            }
+          }
         }
 
-        .table-name {
-          font-weight: 500;
-          color: #303133;
+        .table-header {
+          display: flex;
+          align-items: flex-start;
+          gap: 6px;
+          padding: 8px 6px;
+          cursor: pointer;
+          transition: background 0.2s;
+          min-height: 32px;
+
+          &:hover {
+            background: #f5f7fa;
+          }
+
+          .expand-icon {
+            transition: transform 0.2s;
+            color: #909399;
+            font-size: 12px;
+            margin-top: 3px;
+            flex-shrink: 0;
+          }
+
+          .table-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+
+            .table-title {
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              flex-wrap: wrap;
+
+              .el-icon {
+                color: #409eff;
+                font-size: 14px;
+              }
+
+              .table-name {
+                font-weight: 500;
+                color: #303133;
+                font-size: 13px;
+              }
+
+              .el-tag {
+                font-size: 11px;
+                height: 18px;
+                line-height: 16px;
+                padding: 0 6px;
+              }
+            }
+
+            .table-comment {
+              color: #909399;
+              font-size: 12px;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+              padding-left: 20px;
+            }
+          }
+        }
+
+        .table-content {
+          padding: 0 6px 8px 24px;
+          background: #fafafa;
+
+          .loading-state {
+            padding: 12px;
+            text-align: center;
+            color: #909399;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 13px;
+          }
+
+          .empty-state {
+            padding: 12px;
+            text-align: center;
+            color: #909399;
+            font-size: 13px;
+          }
+
+          .column-list {
+            :deep(.el-table) {
+              font-size: 12px;
+
+              .el-table__cell {
+                padding: 4px 0;
+              }
+
+              .el-tag {
+                font-size: 11px;
+                height: 18px;
+                line-height: 16px;
+                padding: 0 4px;
+              }
+            }
+          }
         }
       }
 
-      .table-comment {
-        color: #909399;
-        font-size: 12px;
-        padding-left: 24px;
+      .load-more {
+        padding: 12px;
+        text-align: center;
       }
-    }
-
-    .column-table-wrapper {
-      padding: 8px 0;
     }
   }
 }
 
 :deep(.el-drawer__body) {
-  padding: 20px;
+  padding: 16px;
 }
 </style>
