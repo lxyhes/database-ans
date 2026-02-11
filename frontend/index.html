@@ -1,87 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>数据分析助手 - 自然语言查询数据</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <div class="container">
-        <header>
-            <h1>数据分析助手</h1>
-            <p>通过自然语言查询您的数据，或使用代码功能</p>
-        </header>
-        
-        <main>
-            <!-- 选项卡导航 -->
-            <div class="tabs">
-                <button id="data-tab-btn" class="tab-btn active">数据分析</button>
-                <button id="code-tab-btn" class="tab-btn">代码助手</button>
-            </div>
-            
-            <!-- 数据分析界面 -->
-            <div id="data-interface" class="interface-section">
-                <div class="input-section">
-                    <label for="query-input">请输入您的查询:</label>
-                    <div class="input-container">
-                        <input type="text" id="query-input" placeholder="例如：显示总销售额，或 查询客户数量">
-                        <button id="submit-btn">查询</button>
-                        <button id="analyze-btn">分析</button>
-                    </div>
-                    <div id="loading" class="hidden">正在处理...</div>
-                </div>
-                
-                <div class="results-section">
-                    <h2>查询结果</h2>
-                    <div id="results-container">
-                        <p class="placeholder">查询结果将在这里显示</p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- 代码助手界面 -->
-            <div id="code-interface" class="interface-section hidden">
-                <div class="code-input-section">
-                    <div class="code-controls">
-                        <select id="code-function-select">
-                            <option value="analyze">分析代码</option>
-                            <option value="generate">生成代码</option>
-                            <option value="optimize">优化代码</option>
-                            <option value="explain">解释代码</option>
-                            <option value="fix">修复代码</option>
-                            <option value="acp-query">ACP 代理查询</option>
-                        </select>
-                    </div>
-                    
-                    <div id="code-input-area">
-                        <label for="code-input">输入代码:</label>
-                        <textarea id="code-input" placeholder="// 在这里输入您的代码"></textarea>
-                    </div>
-                    
-                    <div id="code-description-area" class="hidden">
-                        <label for="code-description">描述需求:</label>
-                        <input type="text" id="code-description" placeholder="例如：创建一个计算数组平均值的函数">
-                    </div>
-                    
-                    <div id="code-requirements-area" class="hidden">
-                        <label for="code-requirements">优化要求:</label>
-                        <input type="text" id="code-requirements" placeholder="例如：提高性能，增加错误处理">
-                    </div>
-                    
-                    <button id="code-submit-btn">执行</button>
-                </div>
-                
-                <div class="results-section">
-                    <h2>代码结果</h2>
-                    <div id="code-results-container">
-                        <p class="placeholder">代码结果将在这里显示</p>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-    
-    <script src="renderer.js"></script>
-</body>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>数据分析助手 - 智能数据洞察</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
 </html>

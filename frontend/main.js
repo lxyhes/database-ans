@@ -1,249 +1,286 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
-const path = require('path');
 const axios = require('axios');
+const path = require('path');
 
-// 创建窗口函数
-function createWindow () {
-  const mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-      enableRemoteModule: true
-    }
-  });
+// 后端 API 地址
+const BACKEND_URL = 'http://localhost:9090';
 
-  mainWindow.loadFile('index.html');
-  
-  // 打开开发者工具（仅在开发模式下）
-  if (process.argv.includes('--dev')) {
-    mainWindow.webContents.openDevTools();
-  }
+let mainWindow;
+
+// 热重载支持
+try {
+    const reloader = require('electron-reloader');
+    reloader(module, {
+        debug: true,
+        watchRenderer: true
+    });
+} catch (err) {
+    console.log('Hot reload not available in production');
 }
 
-// 当Electron完成初始化时调用
-app.whenReady().then(() => {
-  createWindow();
+function createWindow() {
+    mainWindow = new BrowserWindow({
+        width: 1200,
+        height: 800,
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false,
+            enableRemoteModule: true
+        }
+    });
 
-  app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
+    mainWindow.loadFile('index.html');
+
+    // 开发模式下打开开发者工具
+    if (process.argv.includes('--dev') || process.env.NODE_ENV === 'development') {
+        mainWindow.webContents.openDevTools();
+    }
+
+    mainWindow.on('closed', () => {
+        mainWindow = null;
+    });
+}
+
+app.whenReady().then(createWindow);
+
+app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+        app.quit();
+    }
 });
 
-// 当所有窗口都关闭时退出应用
-app.on('window-all-closed', function () {
-  if (process.platform !== 'darwin') app.quit();
+app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+    }
 });
 
-// 处理来自渲染进程的自然语言查询请求
+// ==================== 数据分析相关 IPC 处理器 ====================
+
+// 自然语言查询
 ipcMain.handle('query-natural-language', async (event, query) => {
-  try {
-    const response = await axios.post('http://localhost:9090/api/query/natural', {
-      naturalLanguageQuery: query
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error querying backend:', error);
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to connect to backend'
-    };
-  }
+    try {
+        const response = await axios.post(`${BACKEND_URL}/api/query/natural`, {
+            naturalLanguageQuery: query
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Query error:', error);
+        return { success: false, message: '查询失败: ' + error.message };
+    }
 });
 
-// 处理来自渲染进程的数据分析请求
+// 数据分析
 ipcMain.handle('analyze-natural-language', async (event, query) => {
-  try {
-    const response = await axios.post('http://localhost:9090/api/query/analyze', {
-      naturalLanguageQuery: query
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error analyzing data:', error);
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to connect to backend'
-    };
-  }
+    try {
+        const response = await axios.post(`${BACKEND_URL}/api/query/analyze`, {
+            naturalLanguageQuery: query
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Analysis error:', error);
+        return { success: false, message: '分析失败: ' + error.message };
+    }
 });
 
-// 处理来自渲染进程的代码分析请求
+// ==================== iFlow 相关 IPC 处理器 ====================
+
+// iFlow 简单查询
+ipcMain.handle('iflow-query', async (event, prompt) => {
+    try {
+        const response = await axios.post(`${BACKEND_URL}/api/iflow/query`, {
+            naturalLanguageQuery: prompt
+        });
+        return response.data;
+    } catch (error) {
+        console.error('iFlow query error:', error);
+        return { success: false, message: 'iFlow 查询失败: ' + error.message };
+    }
+});
+
+// iFlow 异步查询
+ipcMain.handle('iflow-query-async', async (event, prompt) => {
+    try {
+        const response = await axios.post(`${BACKEND_URL}/api/iflow/query-async`, {
+            naturalLanguageQuery: prompt
+        });
+        return response.data;
+    } catch (error) {
+        console.error('iFlow async query error:', error);
+        return { success: false, message: 'iFlow 异步查询失败: ' + error.message };
+    }
+});
+
+// iFlow 数据分析
+ipcMain.handle('iflow-analyze', async (event, dataContext, question) => {
+    try {
+        const response = await axios.post(`${BACKEND_URL}/api/iflow/analyze`, {
+            dataContext: dataContext,
+            question: question
+        });
+        return response.data;
+    } catch (error) {
+        console.error('iFlow analysis error:', error);
+        return { success: false, message: 'iFlow 分析失败: ' + error.message };
+    }
+});
+
+// iFlow SQL 生成
+ipcMain.handle('iflow-generate-sql', async (event, schema, naturalLanguageQuery) => {
+    try {
+        const response = await axios.post(`${BACKEND_URL}/api/iflow/generate-sql`, {
+            schema: schema,
+            naturalLanguageQuery: naturalLanguageQuery
+        });
+        return response.data;
+    } catch (error) {
+        console.error('iFlow SQL generation error:', error);
+        return { success: false, message: 'SQL 生成失败: ' + error.message };
+    }
+});
+
+// iFlow 代码生成
+ipcMain.handle('iflow-generate-code', async (event, description, language) => {
+    try {
+        const response = await axios.post(`${BACKEND_URL}/api/iflow/generate-code`, {
+            description: description,
+            language: language
+        });
+        return response.data;
+    } catch (error) {
+        console.error('iFlow code generation error:', error);
+        return { success: false, message: '代码生成失败: ' + error.message };
+    }
+});
+
+// iFlow 代码解释
+ipcMain.handle('iflow-explain-code', async (event, code) => {
+    try {
+        const response = await axios.post(`${BACKEND_URL}/api/iflow/explain-code`, {
+            code: code
+        });
+        return response.data;
+    } catch (error) {
+        console.error('iFlow code explanation error:', error);
+        return { success: false, message: '代码解释失败: ' + error.message };
+    }
+});
+
+// iFlow 数据洞察
+ipcMain.handle('iflow-insights', async (event, dataSummary) => {
+    try {
+        const response = await axios.post(`${BACKEND_URL}/api/iflow/insights`, {
+            dataSummary: dataSummary
+        });
+        return response.data;
+    } catch (error) {
+        console.error('iFlow insights error:', error);
+        return { success: false, message: '数据洞察失败: ' + error.message };
+    }
+});
+
+// ==================== 代码助手相关 IPC 处理器 ====================
+
+// 分析代码
 ipcMain.handle('analyze-code', async (event, code) => {
-  try {
-    const response = await axios.post('http://localhost:9090/api/qwen-code/analyze', {
-      code: code
-    });
-    return response.data || response; // Qwen Code接口可能返回纯文本
-  } catch (error) {
-    console.error('Error analyzing code:', error);
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to connect to backend'
-    };
-  }
+    try {
+        const response = await axios.post(`${BACKEND_URL}/api/qwen-code-sdk/analyze`, {
+            code: code
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Code analysis error:', error);
+        return { success: false, message: '代码分析失败: ' + error.message };
+    }
 });
 
-// 处理来自渲染进程的代码生成请求
+// 生成代码
 ipcMain.handle('generate-code', async (event, description) => {
-  try {
-    const response = await axios.post('http://localhost:9090/api/qwen-code/generate', {
-      description: description
-    });
-    return response.data || response; // Qwen Code接口可能返回纯文本
-  } catch (error) {
-    console.error('Error generating code:', error);
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to connect to backend'
-    };
-  }
+    try {
+        const response = await axios.post(`${BACKEND_URL}/api/qwen-code-sdk/generate`, {
+            description: description
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Code generation error:', error);
+        return { success: false, message: '代码生成失败: ' + error.message };
+    }
 });
 
-// 处理来自渲染进程的代码优化请求
+// 优化代码
 ipcMain.handle('optimize-code', async (event, code, requirements) => {
-  try {
-    const response = await axios.post('http://localhost:9090/api/qwen-code/optimize', {
-      code: code,
-      requirements: requirements
-    });
-    return response.data || response; // Qwen Code接口可能返回纯文本
-  } catch (error) {
-    console.error('Error optimizing code:', error);
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to connect to backend'
-    };
-  }
+    try {
+        const response = await axios.post(`${BACKEND_URL}/api/qwen-code-sdk/optimize`, {
+            code: code,
+            requirements: requirements
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Code optimization error:', error);
+        return { success: false, message: '代码优化失败: ' + error.message };
+    }
 });
 
-// 处理来自渲染进程的代码解释请求
+// 解释代码
 ipcMain.handle('explain-code', async (event, code) => {
-  try {
-    const response = await axios.post('http://localhost:9090/api/qwen-code/explain', {
-      code: code
-    });
-    return response.data || response; // Qwen Code接口可能返回纯文本
-  } catch (error) {
-    console.error('Error explaining code:', error);
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to connect to backend'
-    };
-  }
+    try {
+        const response = await axios.post(`${BACKEND_URL}/api/qwen-code-sdk/explain`, {
+            code: code
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Code explanation error:', error);
+        return { success: false, message: '代码解释失败: ' + error.message };
+    }
 });
 
-// 处理来自渲染进程的代码修复请求
+// 修复代码
 ipcMain.handle('fix-code', async (event, code, errorDescription) => {
-  try {
-    const response = await axios.post('http://localhost:9090/api/qwen-code/fix', {
-      code: code,
-      errorDescription: errorDescription
-    });
-    return response.data || response; // Qwen Code接口可能返回纯文本
-  } catch (error) {
-    console.error('Error fixing code:', error);
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to connect to backend'
-    };
-  }
+    try {
+        const response = await axios.post(`${BACKEND_URL}/api/qwen-code-sdk/fix`, {
+            code: code,
+            errorDescription: errorDescription
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Code fix error:', error);
+        return { success: false, message: '代码修复失败: ' + error.message };
+    }
 });
 
-// 处理来自渲染进程的 ACP 代理查询请求
-ipcMain.handle('acp-query', async (event, query) => {
-  try {
-    const response = await axios.post('http://localhost:9090/api/acp/query', {
-      naturalLanguageQuery: query
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error querying ACP agent:', error);
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to connect to backend'
-    };
-  }
+// ACP 代理查询
+ipcMain.handle('acp-query', async (event, description) => {
+    try {
+        const response = await axios.post(`${BACKEND_URL}/api/acp/query`, {
+            naturalLanguageQuery: description
+        });
+        return response.data;
+    } catch (error) {
+        console.error('ACP query error:', error);
+        return { success: false, message: 'ACP 查询失败: ' + error.message };
+    }
 });
 
-// 处理来自渲染进程的异步代码分析请求
-ipcMain.handle('analyze-code-async', async (event, code) => {
-  try {
-    const response = await axios.post('http://localhost:9090/api/qwen-code/analyze-async', {
-      code: code
-    });
-    return response.data || response; // Qwen Code接口可能返回纯文本
-  } catch (error) {
-    console.error('Error analyzing code asynchronously:', error);
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to connect to backend'
-    };
-  }
+// ==================== 数据管理相关 IPC 处理器 ====================
+
+// 获取数据摘要
+ipcMain.handle('get-data-summary', async () => {
+    try {
+        const response = await axios.get(`${BACKEND_URL}/api/data/summary`);
+        return response.data;
+    } catch (error) {
+        console.error('Get data summary error:', error);
+        return { success: false, message: '获取数据摘要失败: ' + error.message };
+    }
 });
 
-// 处理来自渲染进程的异步代码生成请求
-ipcMain.handle('generate-code-async', async (event, description) => {
-  try {
-    const response = await axios.post('http://localhost:9090/api/qwen-code/generate-async', {
-      description: description
-    });
-    return response.data || response; // Qwen Code接口可能返回纯文本
-  } catch (error) {
-    console.error('Error generating code asynchronously:', error);
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to connect to backend'
-    };
-  }
-});
-
-// 处理来自渲染进程的异步代码优化请求
-ipcMain.handle('optimize-code-async', async (event, code, requirements) => {
-  try {
-    const response = await axios.post('http://localhost:9090/api/qwen-code/optimize-async', {
-      code: code,
-      requirements: requirements
-    });
-    return response.data || response; // Qwen Code接口可能返回纯文本
-  } catch (error) {
-    console.error('Error optimizing code asynchronously:', error);
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to connect to backend'
-    };
-  }
-});
-
-// 处理来自渲染进程的异步代码解释请求
-ipcMain.handle('explain-code-async', async (event, code) => {
-  try {
-    const response = await axios.post('http://localhost:9090/api/qwen-code/explain-async', {
-      code: code
-    });
-    return response.data || response; // Qwen Code接口可能返回纯文本
-  } catch (error) {
-    console.error('Error explaining code asynchronously:', error);
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to connect to backend'
-    };
-  }
-});
-
-// 处理来自渲染进程的异步代码修复请求
-ipcMain.handle('fix-code-async', async (event, code, errorDescription) => {
-  try {
-    const response = await axios.post('http://localhost:9090/api/qwen-code/fix-async', {
-      code: code,
-      errorDescription: errorDescription
-    });
-    return response.data || response; // Qwen Code接口可能返回纯文本
-  } catch (error) {
-    console.error('Error fixing code asynchronously:', error);
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to connect to backend'
-    };
-  }
+// 获取表结构
+ipcMain.handle('get-table-schema', async (event, tableName) => {
+    try {
+        const response = await axios.get(`${BACKEND_URL}/api/data/schema/${tableName}`);
+        return response.data;
+    } catch (error) {
+        console.error('Get table schema error:', error);
+        return { success: false, message: '获取表结构失败: ' + error.message };
+    }
 });
