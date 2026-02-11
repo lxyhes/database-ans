@@ -1,5 +1,6 @@
 package com.data.assistant.service;
 
+import com.data.assistant.model.DataSource;
 import com.data.assistant.model.TableRelation;
 import com.data.assistant.repository.DataSourceRepository;
 import com.data.assistant.repository.TableRelationRepository;
@@ -7,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.sql.DataSource;
 import java.sql.*;
 import java.util.*;
 
@@ -21,17 +21,18 @@ public class TableRelationService {
     private DataSourceRepository dataSourceRepository;
 
     @Autowired
-    private DataSource jdbcDataSource;
+    private DynamicDataSourceService dynamicDataSourceService;
 
     @Transactional
     public void analyzeTableRelations(Long dataSourceId) {
-        com.data.assistant.model.DataSource dataSource = dataSourceRepository.findById(dataSourceId)
+        DataSource dataSource = dataSourceRepository.findById(dataSourceId)
                 .orElseThrow(() -> new RuntimeException("DataSource not found"));
 
         // 清除旧的关系数据
         tableRelationRepository.deleteByDataSourceId(dataSourceId);
 
-        try (Connection connection = jdbcDataSource.getConnection()) {
+        // 获取指定数据源的连接
+        try (Connection connection = dynamicDataSourceService.getJdbcTemplate(dataSourceId).getDataSource().getConnection()) {
             DatabaseMetaData metaData = connection.getMetaData();
             String catalog = connection.getCatalog();
             String schema = connection.getSchema();

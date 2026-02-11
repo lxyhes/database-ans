@@ -115,6 +115,7 @@ const loadGraphData = async () => {
     graphData.value = res.data
     renderGraph()
   } catch (error) {
+    console.error('加载关系图谱失败:', error)
     ElMessage.error('加载关系图谱失败')
   }
 }
@@ -141,6 +142,12 @@ const analyzeRelations = async () => {
 // 渲染图谱
 const renderGraph = () => {
   if (!chartRef.value || !graphData.value) return
+
+  // 检查是否有数据
+  if (!graphData.value.nodes || graphData.value.nodes.length === 0) {
+    ElMessage.info('未检测到表关系，请确保数据库中存在外键约束或符合命名规范的关联字段（如 user_id 关联 users.id）')
+    return
+  }
 
   if (chart.value) {
     chart.value.dispose()
@@ -175,7 +182,7 @@ const renderGraph = () => {
           ...link,
           lineStyle: {
             color: getLinkColor(link.relationType),
-            type: link.relationType === 'FOREIGN_KEY' ? 'solid' : 'dashed',
+            type: (link.relationType === 'FOREIGN_KEY' || link.relationType?.toString() === 'FOREIGN_KEY') ? 'solid' : 'dashed',
             width: link.confidence > 0.8 ? 3 : 1
           }
         })),
@@ -235,7 +242,8 @@ const getLinkColor = (relationType) => {
     'INFERRED': '#e6a23c',
     'MANUAL': '#409eff'
   }
-  return colors[relationType] || '#999'
+  const type = relationType?.toString() || ''
+  return colors[type] || '#999'
 }
 
 const getRelationTypeTag = (type) => {
@@ -244,7 +252,8 @@ const getRelationTypeTag = (type) => {
     'INFERRED': 'warning',
     'MANUAL': 'primary'
   }
-  return tags[type] || 'info'
+  const typeStr = type?.toString() || ''
+  return tags[typeStr] || 'info'
 }
 
 const getRelationTypeText = (type) => {
@@ -253,7 +262,8 @@ const getRelationTypeText = (type) => {
     'INFERRED': '推断关系',
     'MANUAL': '手动配置'
   }
-  return texts[type] || type
+  const typeStr = type?.toString() || ''
+  return texts[typeStr] || typeStr
 }
 
 onMounted(() => {
@@ -280,6 +290,10 @@ onUnmounted(() => {
     .header-actions {
       display: flex;
       gap: 10px;
+
+      .el-select {
+        width: 200px;
+      }
     }
   }
 

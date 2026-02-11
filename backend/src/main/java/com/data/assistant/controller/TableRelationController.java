@@ -19,25 +19,37 @@ public class TableRelationController {
     @PostMapping("/analyze/{dataSourceId}")
     public ResponseEntity<?> analyzeRelations(@PathVariable Long dataSourceId) {
         tableRelationService.analyzeTableRelations(dataSourceId);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "message", "分析完成"
+        ));
     }
 
     @GetMapping("/{dataSourceId}")
     public ResponseEntity<?> getRelations(@PathVariable Long dataSourceId) {
         List<TableRelation> relations = tableRelationService.getTableRelations(dataSourceId);
-        return ResponseEntity.ok(relations);
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "data", relations
+        ));
     }
 
     @GetMapping("/{dataSourceId}/graph")
     public ResponseEntity<?> getRelationGraph(@PathVariable Long dataSourceId) {
         Map<String, Object> graphData = tableRelationService.getRelationGraphData(dataSourceId);
-        return ResponseEntity.ok(graphData);
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "data", graphData
+        ));
     }
 
     @GetMapping("/{dataSourceId}/table/{tableName}")
     public ResponseEntity<?> getTableRelations(@PathVariable Long dataSourceId, @PathVariable String tableName) {
         List<TableRelation> relations = tableRelationService.getTableRelationsForTable(dataSourceId, tableName);
-        return ResponseEntity.ok(relations);
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "data", relations
+        ));
     }
 
     @PostMapping
@@ -51,12 +63,17 @@ public class TableRelationController {
 
         TableRelation relation = tableRelationService.addManualRelation(
                 dataSourceId, sourceTable, sourceColumn, targetTable, targetColumn, description);
-        return ResponseEntity.ok(relation);
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "data", relation
+        ));
     }
 
     @DeleteMapping("/{relationId}")
     public ResponseEntity<?> deleteRelation(@PathVariable Long relationId) {
         tableRelationService.deleteRelation(relationId);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(Map.of(
+            "success", true
+        ));
     }
 }

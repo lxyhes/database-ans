@@ -44,16 +44,16 @@
           >
             <!-- 表头 -->
             <div class="table-header" @click="toggleTable(table.name)">
-              <el-icon class="expand-icon"><ArrowRight /></el-icon>
-              <div class="table-info">
-                <div class="table-title">
-                  <el-icon><Grid /></el-icon>
-                  <span class="table-name">{{ table.name }}</span>
-                  <el-tag v-if="table.rowCount !== undefined && table.rowCount !== null" size="small" type="info" effect="plain">
-                    {{ formatRowCount(table.rowCount) }}
-                  </el-tag>
-                </div>
-                <span v-if="table.comment" class="table-comment">{{ table.comment }}</span>
+              <div class="table-header-main">
+                <el-icon class="expand-icon"><ArrowRight /></el-icon>
+                <el-icon class="table-icon"><Grid /></el-icon>
+                <span class="table-name" :title="table.name">{{ table.name }}</span>
+                <el-tag v-if="table.rowCount !== undefined && table.rowCount !== null" size="small" type="info" effect="plain">
+                  {{ formatRowCount(table.rowCount) }}
+                </el-tag>
+              </div>
+              <div v-if="table.comment" class="table-comment-row">
+                {{ table.comment }}
               </div>
             </div>
             
@@ -304,65 +304,57 @@ watch(() => props.dataSourceId, () => {
 
         .table-header {
           display: flex;
-          align-items: flex-start;
-          gap: 6px;
-          padding: 8px 6px;
+          flex-direction: column;
+          padding: 5px 8px;
           cursor: pointer;
           transition: background 0.2s;
-          min-height: 32px;
 
           &:hover {
             background: #f5f7fa;
           }
 
-          .expand-icon {
-            transition: transform 0.2s;
-            color: #909399;
-            font-size: 12px;
-            margin-top: 3px;
-            flex-shrink: 0;
-          }
-
-          .table-info {
-            flex: 1;
+          .table-header-main {
             display: flex;
-            flex-direction: column;
-            gap: 2px;
-            min-width: 0;
+            align-items: center;
+            gap: 6px;
 
-            .table-title {
-              display: flex;
-              align-items: center;
-              gap: 6px;
-              flex-wrap: wrap;
-
-              .el-icon {
-                color: #409eff;
-                font-size: 14px;
-              }
-
-              .table-name {
-                font-weight: 500;
-                color: #303133;
-                font-size: 13px;
-              }
-
-              .el-tag {
-                font-size: 11px;
-                height: 18px;
-                line-height: 16px;
-                padding: 0 6px;
-              }
-            }
-
-            .table-comment {
+            .expand-icon {
+              transition: transform 0.2s;
               color: #909399;
               font-size: 12px;
-              overflow: hidden;
-              text-overflow: ellipsis;
-              white-space: nowrap;
-              padding-left: 20px;
+              flex-shrink: 0;
             }
+
+            .table-icon {
+              color: #409eff;
+              font-size: 14px;
+              flex-shrink: 0;
+            }
+
+            .table-name {
+              font-weight: 500;
+              color: #303133;
+              font-size: 13px;
+              flex-shrink: 0;
+            }
+
+            .el-tag {
+              font-size: 11px;
+              height: 18px;
+              line-height: 16px;
+              padding: 0 6px;
+              flex-shrink: 0;
+            }
+          }
+
+          .table-comment-row {
+            color: #909399;
+            font-size: 12px;
+            padding-left: 24px;
+            margin-top: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
           }
         }
 
