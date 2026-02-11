@@ -260,6 +260,13 @@
         <div class="optimization-content">{{ sqlOptimization }}</div>
       </div>
     </el-dialog>
+
+    <!-- 表结构抽屉组件 -->
+    <TableStructureDrawer
+      v-model="tableDrawerVisible"
+      :data-source-id="selectedDataSource"
+      :title="currentDataSource ? `${currentDataSource.name} - 表结构` : '表结构'"
+    />
   </div>
 </template>
 
@@ -275,6 +282,7 @@ import {
 import { naturalLanguageToSQL, explainSQL as apiExplainSQL, optimizeSQL as apiOptimizeSQL } from '@/api/nl2sql'
 import { getDataSources } from '@/api/datasource'
 import { exportToExcel } from '@/utils/export'
+import TableStructureDrawer from '@/components/TableStructureDrawer.vue'
 
 const router = useRouter()
 
@@ -293,6 +301,9 @@ const optimizeDialogVisible = ref(false)
 const currentSQL = ref('')
 const sqlExplanation = ref('')
 const sqlOptimization = ref('')
+
+// 表结构抽屉状态
+const tableDrawerVisible = ref(false)
 
 // 示例查询
 const examples = [
@@ -481,9 +492,13 @@ const goToDataSourceManage = () => {
   router.push('/datasource')
 }
 
-// 显示表结构
+// 显示表结构抽屉
 const showSchema = () => {
-  ElMessage.info('表结构查看功能开发中...')
+  if (!selectedDataSource.value) {
+    ElMessage.warning('请先选择一个数据源')
+    return
+  }
+  tableDrawerVisible.value = true
 }
 
 onMounted(() => {
