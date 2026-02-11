@@ -210,7 +210,9 @@ const onDataSourceChange = async () => {
   if (!selectedDataSource.value) return
 
   try {
-    const res = await request.get(`/api/datasources/${selectedDataSource.value}/tables`)
+    const res = await request.get('/api/data/tables', {
+      params: { dataSourceId: selectedDataSource.value }
+    })
     tables.value = res.data
   } catch (error) {
     ElMessage.error('加载数据表失败')

@@ -40,7 +40,10 @@ public class DataController {
      * 获取所有表名
      */
     @GetMapping("/tables")
-    public List<String> getAllTables() {
+    public List<String> getAllTables(@RequestParam(required = false) Long dataSourceId) {
+        if (dataSourceId != null) {
+            dataQueryService.switchDataSource(dataSourceId);
+        }
         return dataQueryService.getAllTableNames();
     }
 

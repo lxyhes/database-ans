@@ -1,11 +1,10 @@
 package com.data.assistant.service;
 
-import com.data.assistant.model.DataSource;
 import com.data.assistant.repository.DataSourceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.sql.DataSource as JdbcDataSource;
+import javax.sql.DataSource;
 import java.sql.*;
 import java.util.*;
 
@@ -16,17 +15,17 @@ public class FederationQueryService {
     private DataSourceRepository dataSourceRepository;
 
     @Autowired
-    private javax.sql.DataSource jdbcDataSource;
+    private DataSource jdbcDataSource;
 
     public Map<String, Object> executeFederationQuery(List<Long> dataSourceIds, String sql) throws Exception {
         Map<String, Object> result = new HashMap<>();
         List<Map<String, Object>> allData = new ArrayList<>();
 
         for (Long dataSourceId : dataSourceIds) {
-            DataSource dataSource = dataSourceRepository.findById(dataSourceId)
+            com.data.assistant.model.DataSource dataSource = dataSourceRepository.findById(dataSourceId)
                     .orElseThrow(() -> new RuntimeException("DataSource not found: " + dataSourceId));
 
-            try (Connection connection = getConnection(dataSource);
+            try (Connection connection = jdbcDataSource.getConnection();
                  Statement stmt = connection.createStatement();
                  ResultSet rs = stmt.executeQuery(sql)) {
 
@@ -98,12 +97,12 @@ public class FederationQueryService {
 
     private List<Map<String, Object>> fetchData(Long dataSourceId, String tableName) throws Exception {
         List<Map<String, Object>> data = new ArrayList<>();
-        DataSource dataSource = dataSourceRepository.findById(dataSourceId)
+        com.data.assistant.model.DataSource dataSource = dataSourceRepository.findById(dataSourceId)
                 .orElseThrow(() -> new RuntimeException("DataSource not found"));
 
         String sql = "SELECT * FROM " + tableName + " LIMIT 10000";
         
-        try (Connection connection = getConnection(dataSource);
+        try (Connection connection = jdbcDataSource.getConnection();
              Statement stmt = connection.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 
@@ -122,10 +121,6 @@ public class FederationQueryService {
         return data;
     }
 
-    private Connection getConnection(DataSource dataSource) throws SQLException {
-        return jdbcDataSource.getConnection();
-    }
-
     public List<Map<String, Object>> aggregateAcrossDataSources(List<Long> dataSourceIds, 
                                                                  String tableName,
                                                                  String aggColumn,
@@ -133,13 +128,13 @@ public class FederationQueryService {
         List<Map<String, Object>> results = new ArrayList<>();
         
         for (Long dataSourceId : dataSourceIds) {
-            DataSource dataSource = dataSourceRepository.findById(dataSourceId)
+            com.data.assistant.model.DataSource dataSource = dataSourceRepository.findById(dataSourceId)
                     .orElseThrow(() -> new RuntimeException("DataSource not found"));
 
             String sql = String.format("SELECT %s(%s) as result FROM %s", 
                 aggFunction, aggColumn, tableName);
             
-            try (Connection connection = getConnection(dataSource);
+            try (Connection connection = jdbcDataSource.getConnection();
                  Statement stmt = connection.createStatement();
                  ResultSet rs = stmt.executeQuery(sql)) {
 

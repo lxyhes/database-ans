@@ -1,13 +1,12 @@
 package com.data.assistant.service;
 
 import com.data.assistant.model.DataQualityReport;
-import com.data.assistant.model.DataSource;
 import com.data.assistant.repository.DataSourceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import javax.sql.DataSource as JdbcDataSource;
+import javax.sql.DataSource;
 import java.sql.*;
 import java.util.*;
 
@@ -18,10 +17,10 @@ public class DataQualityService {
     private DataSourceRepository dataSourceRepository;
 
     @Autowired
-    private javax.sql.DataSource jdbcDataSource;
+    private DataSource jdbcDataSource;
 
     public DataQualityReport checkTableQuality(Long dataSourceId, String tableName) {
-        DataSource dataSource = dataSourceRepository.findById(dataSourceId)
+        com.data.assistant.model.DataSource dataSource = dataSourceRepository.findById(dataSourceId)
                 .orElseThrow(() -> new RuntimeException("DataSource not found"));
 
         DataQualityReport report = new DataQualityReport();

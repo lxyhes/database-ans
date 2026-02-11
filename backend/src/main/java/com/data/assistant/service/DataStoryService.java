@@ -1,11 +1,10 @@
 package com.data.assistant.service;
 
-import com.data.assistant.model.DataSource;
 import com.data.assistant.repository.DataSourceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.sql.DataSource as JdbcDataSource;
+import javax.sql.DataSource;
 import java.sql.*;
 import java.util.*;
 
@@ -16,10 +15,7 @@ public class DataStoryService {
     private DataSourceRepository dataSourceRepository;
 
     @Autowired
-    private javax.sql.DataSource jdbcDataSource;
-
-    @Autowired
-    private AIService aiService;
+    private DataSource jdbcDataSource;
 
     public Map<String, Object> generateDataStory(Long dataSourceId, String tableName) {
         Map<String, Object> story = new HashMap<>();
@@ -43,7 +39,7 @@ public class DataStoryService {
             story.put("columnDistributions", columnDistributions);
             story.put("insights", insights);
             story.put("storyText", storyText);
-            story.put("generatedAt", new Date());
+            story.put("generatedAt", new java.util.Date());
             
         } catch (Exception e) {
             story.put("error", e.getMessage());
@@ -250,7 +246,7 @@ public class DataStoryService {
             
             story.put("title", tableName + " 对比分析报告");
             story.put("comparisonData", comparisonData);
-            story.put("generatedAt", new Date());
+            story.put("generatedAt", new java.util.Date());
             
         } catch (Exception e) {
             story.put("error", e.getMessage());

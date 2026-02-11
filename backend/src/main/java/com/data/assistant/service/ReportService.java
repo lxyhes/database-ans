@@ -33,9 +33,6 @@ public class ReportService {
     private DataSourceRepository dataSourceRepository;
 
     @Autowired
-    private AIService aiService;
-
-    @Autowired
     private DataSource jdbcDataSource;
 
     @Autowired
@@ -175,14 +172,9 @@ public class ReportService {
     }
 
     private String convertNaturalLanguageToSql(Long dataSourceId, String naturalLanguage) {
-        // 使用AI服务转换自然语言为SQL
-        NL2SQLRequest request = new NL2SQLRequest();
-        request.setDataSourceId(dataSourceId);
-        request.setQuestion(naturalLanguage);
-        request.setProvider("mock");
-
-        NL2SQLResult result = aiService.generateSQL(request);
-        return result.getSql();
+        // 简化版：直接返回一个示例SQL，实际项目中应该调用NL2SQL服务
+        // TODO: 集成NL2SQL服务
+        return "SELECT * FROM " + naturalLanguage.replaceAll("[^a-zA-Z0-9_]", "_");
     }
 
     private List<Map<String, Object>> executeSql(Long dataSourceId, String sql) throws Exception {

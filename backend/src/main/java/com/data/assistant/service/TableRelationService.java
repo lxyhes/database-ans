@@ -1,6 +1,5 @@
 package com.data.assistant.service;
 
-import com.data.assistant.model.DataSource;
 import com.data.assistant.model.TableRelation;
 import com.data.assistant.repository.DataSourceRepository;
 import com.data.assistant.repository.TableRelationRepository;
@@ -8,7 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.sql.DataSource as JdbcDataSource;
+import javax.sql.DataSource;
 import java.sql.*;
 import java.util.*;
 
@@ -22,17 +21,17 @@ public class TableRelationService {
     private DataSourceRepository dataSourceRepository;
 
     @Autowired
-    private javax.sql.DataSource jdbcDataSource;
+    private DataSource jdbcDataSource;
 
     @Transactional
     public void analyzeTableRelations(Long dataSourceId) {
-        DataSource dataSource = dataSourceRepository.findById(dataSourceId)
+        com.data.assistant.model.DataSource dataSource = dataSourceRepository.findById(dataSourceId)
                 .orElseThrow(() -> new RuntimeException("DataSource not found"));
 
         // 清除旧的关系数据
         tableRelationRepository.deleteByDataSourceId(dataSourceId);
 
-        try (Connection connection = getConnection(dataSource)) {
+        try (Connection connection = jdbcDataSource.getConnection()) {
             DatabaseMetaData metaData = connection.getMetaData();
             String catalog = connection.getCatalog();
             String schema = connection.getSchema();
@@ -203,10 +202,7 @@ public class TableRelationService {
         return "其他";
     }
 
-    private Connection getConnection(DataSource dataSource) throws SQLException {
-        // 使用默认数据源连接，实际项目中可能需要根据数据源配置动态创建连接
-        return jdbcDataSource.getConnection();
-    }
+
 
     @Transactional
     public TableRelation addManualRelation(Long dataSourceId, String sourceTable, String sourceColumn,
