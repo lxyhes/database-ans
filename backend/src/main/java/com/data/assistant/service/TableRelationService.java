@@ -53,15 +53,19 @@ public class TableRelationService {
 
         // 获取所有表
         List<String> tables = new ArrayList<>();
-        try (ResultSet rs = metaData.getTables(catalog, schema, "%", new String[]{"TABLE"})) {
+        // 如果 schema 为 null，尝试使用 catalog 或空字符串
+        String effectiveSchema = schema != null ? schema : (catalog != null ? catalog : null);
+        try (ResultSet rs = metaData.getTables(catalog, effectiveSchema, "%", new String[]{"TABLE"})) {
             while (rs.next()) {
                 tables.add(rs.getString("TABLE_NAME"));
             }
         }
+        System.out.println("Found tables: " + tables);
 
         // 分析每个表的外键
+        int foreignKeyCount = 0;
         for (String table : tables) {
-            try (ResultSet rs = metaData.getImportedKeys(catalog, schema, table)) {
+            try (ResultSet rs = metaData.getImportedKeys(catalog, effectiveSchema, table)) {
                 while (rs.next()) {
                     String pkTable = rs.getString("PKTABLE_NAME");
                     String pkColumn = rs.getString("PKCOLUMN_NAME");
@@ -79,9 +83,11 @@ public class TableRelationService {
                             table, fkColumn, pkTable, pkColumn));
 
                     tableRelationRepository.save(relation);
+                    foreignKeyCount++;
                 }
             }
         }
+        System.out.println("Found foreign keys: " + foreignKeyCount);
     }
 
     private void analyzeInferredRelations(DatabaseMetaData metaData, String catalog, String schema, Long dataSourceId)
@@ -89,16 +95,19 @@ public class TableRelationService {
 
         // 获取所有表和字段
         Map<String, List<String>> tableColumns = new HashMap<>();
+        String effectiveSchema = schema != null ? schema : (catalog != null ? catalog : null);
 
-        try (ResultSet rs = metaData.getColumns(catalog, schema, "%", "%")) {
+        try (ResultSet rs = metaData.getColumns(catalog, effectiveSchema, "%", "%")) {
             while (rs.next()) {
                 String tableName = rs.getString("TABLE_NAME");
                 String columnName = rs.getString("COLUMN_NAME");
                 tableColumns.computeIfAbsent(tableName, k -> new ArrayList<>()).add(columnName);
             }
         }
+        System.out.println("Table columns map size: " + tableColumns.size());
 
         // 推断关系：user_id -> users.id 模式
+        int inferredCount = 0;
         for (Map.Entry<String, List<String>> entry : tableColumns.entrySet()) {
             String tableName = entry.getKey();
             List<String> columns = entry.getValue();
@@ -133,6 +142,7 @@ public class TableRelationService {
                                             tableName, column, targetTable));
 
                                     tableRelationRepository.save(relation);
+                                    inferredCount++;
                                 }
                             }
                         }
@@ -140,6 +150,7 @@ public class TableRelationService {
                 }
             }
         }
+        System.out.println("Found inferred relations: " + inferredCount);
     }
 
     @Transactional(readOnly = true)
@@ -158,6 +169,7 @@ public class TableRelationService {
     @Transactional(readOnly = true)
     public Map<String, Object> getRelationGraphData(Long dataSourceId) {
         List<TableRelation> relations = tableRelationRepository.findByDataSourceId(dataSourceId);
+        System.out.println("getRelationGraphData - dataSourceId: " + dataSourceId + ", relations count: " + relations.size());
 
         Set<String> tableNames = new HashSet<>();
         List<Map<String, Object>> nodes = new ArrayList<>();
@@ -190,6 +202,7 @@ public class TableRelationService {
         result.put("totalTables", tableNames.size());
         result.put("totalRelations", relations.size());
 
+        System.out.println("getRelationGraphData - result: " + result);
         return result;
     }
 

@@ -114,7 +114,8 @@ const loadGraphData = async () => {
 
   try {
     const res = await request.get(`/api/table-relations/${selectedDataSource.value}/graph`)
-    graphData.value = res.data
+    // 兼容两种返回格式: {success: true, data: {...}} 或 {...}
+    graphData.value = res.data || res
     renderGraph()
   } catch (error) {
     console.error('加载关系图谱失败:', error)

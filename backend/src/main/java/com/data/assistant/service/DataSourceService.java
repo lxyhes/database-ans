@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * 数据源管理服务
@@ -36,11 +37,11 @@ public class DataSourceService {
      */
     public List<DataSource> getAllDataSources() {
         List<DataSource> sources = dataSourceRepository.findAll();
-        // 检查每个数据源的连接状态
-        for (DataSource source : sources) {
-            source.setConnectionStatus(checkConnectionStatus(source));
-        }
-        return sources;
+        // 过滤掉 H2 数据源，并检查每个数据源的连接状态
+        return sources.stream()
+            .filter(source -> !"h2".equalsIgnoreCase(source.getType()))
+            .peek(source -> source.setConnectionStatus(checkConnectionStatus(source)))
+            .collect(Collectors.toList());
     }
     
     /**
