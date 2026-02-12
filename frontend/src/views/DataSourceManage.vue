@@ -37,6 +37,7 @@
         >
           <div class="datasource-header">
             <div class="datasource-icon">
+              <div class="status-indicator" :class="ds.connectionStatus === 'connected' ? 'connected' : 'disconnected'"></div>
               <el-icon :size="32">
                 <Coin v-if="ds.type === 'mysql'" />
                 <DataLine v-else-if="ds.type === 'postgresql'" />
@@ -61,6 +62,9 @@
                   </el-dropdown-item>
                   <el-dropdown-item command="test">
                     <el-icon><Connection /></el-icon> 测试连接
+                  </el-dropdown-item>
+                  <el-dropdown-item command="refreshStatus">
+                    <el-icon><Refresh /></el-icon> 刷新状态
                   </el-dropdown-item>
                   <el-dropdown-item v-if="!ds.isDefault" command="setDefault">
                     <el-icon><Star /></el-icon> 设为默认
@@ -212,12 +216,12 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, onMounted, watch, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Plus, Coin, DataLine, Collection, More,
-  Edit, Delete, Connection, Star, Grid
+  Edit, Delete, Connection, Star, Grid, Refresh
 } from '@element-plus/icons-vue'
 import {
   getDataSources,
@@ -419,9 +423,24 @@ const handleCommand = (command, row) => {
     case 'test':
       handleTestSingleConnection(row)
       break
+    case 'refreshStatus':
+      handleRefreshStatus(row)
+      break
     case 'setDefault':
       handleSetDefault(row)
       break
+  }
+}
+
+const handleRefreshStatus = async (row) => {
+  try {
+    row.connectionStatus = 'checking'
+    const res = await testDataSourceConnection(row)
+    row.connectionStatus = res.success ? 'connected' : 'disconnected'
+    ElMessage.success(res.success ? '连接正常' : '连接失败')
+  } catch (error) {
+    row.connectionStatus = 'disconnected'
+    ElMessage.error('状态刷新失败')
   }
 }
 
@@ -516,6 +535,27 @@ onMounted(() => {
         justify-content: center;
         margin-right: 12px;
         color: #409eff;
+        position: relative;
+
+        .status-indicator {
+          position: absolute;
+          top: -2px;
+          right: -2px;
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          border: 2px solid #fff;
+          
+          &.connected {
+            background: #67c23a;
+            box-shadow: 0 0 6px #67c23a;
+          }
+          
+          &.disconnected {
+            background: #f56c6c;
+            box-shadow: 0 0 6px #f56c6c;
+          }
+        }
       }
 
       .datasource-info {

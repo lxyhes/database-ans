@@ -95,6 +95,12 @@
                           <el-button type="primary" text size="small" @click="copySQL(msg.sql)">
                             <el-icon><CopyDocument /></el-icon> 复制
                           </el-button>
+                          <el-button type="info" text size="small" @click="toggleFormat(msg)" v-if="!msg.formatted">
+                            <el-icon><View /></el-icon> 格式化
+                          </el-button>
+                          <el-button type="info" text size="small" @click="toggleFormat(msg)" v-else>
+                            <el-icon><View /></el-icon> 原始
+                          </el-button>
                           <el-button type="info" text size="small" @click="explainSQL(msg.sql)">
                             <el-icon><QuestionFilled /></el-icon> 解释
                           </el-button>
@@ -103,7 +109,7 @@
                           </el-button>
                         </div>
                       </div>
-                      <pre class="sql-code"><code>{{ msg.sql }}</code></pre>
+                      <pre class="sql-code"><code v-html="getFormattedSql(msg)"></code></pre>
                     </div>
 
                     <!-- 查询描述 -->
@@ -115,7 +121,7 @@
                     <!-- 数据表格 -->
                     <div v-if="msg.data && msg.data.length > 0" class="data-table">
                       <el-table 
-                        :data="msg.data" 
+                        :data="getPagedData(msg)" 
                         border 
                         stripe
                         max-height="400"
@@ -130,10 +136,31 @@
                         />
                       </el-table>
                       <div class="table-footer">
-                        <span class="record-count">共 {{ msg.data.length }} 条记录</span>
-                        <el-button type="primary" text size="small" @click="exportData(msg.data)">
-                          <el-icon><Download /></el-icon> 导出
-                        </el-button>
+                        <div class="stats-info">
+                          <span class="record-count">共 {{ msg.data.length }} 条记录</span>
+                          <span v-if="msg.executionTime" class="execution-time">
+                            <el-icon><Timer /></el-icon>
+                            耗时 {{ msg.executionTime < 1000 ? msg.executionTime + ' ms' : (msg.executionTime / 1000).toFixed(2) + ' s' }}
+                          </span>
+                        </div>
+                        <div class="footer-right">
+                          <el-pagination
+                            v-if="msg.data.length > 20"
+                            v-model:current-page="msg.currentPage"
+                            :page-size="20"
+                            :total="msg.data.length"
+                            layout="prev, pager, next"
+                            small
+                          />
+                          <div class="action-buttons">
+                            <el-button type="success" text size="small" @click="openChartGenerator(msg.data)">
+                              <el-icon><TrendCharts /></el-icon> 生成图表
+                            </el-button>
+                            <el-button type="primary" text size="small" @click="exportData(msg.data)">
+                              <el-icon><Download /></el-icon> 导出
+                            </el-button>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -211,6 +238,76 @@
           <el-empty v-else description="未选择数据源" />
         </el-card>
 
+        <!-- 查询模板库 -->
+        <el-card class="template-card">
+          <template #header>
+            <div class="template-header">
+              <span>查询模板</span>
+              <el-tag size="small" type="info">点击使用</el-tag>
+            </div>
+          </template>
+          <el-collapse v-model="activeTemplateCategory">
+            <el-collapse-item title="📊 统计分析" name="stats">
+              <div class="template-list">
+                <div class="template-item" @click="useTemplate('统计表中记录总数')">
+                  <span class="template-text">统计表中记录总数</span>
+                </div>
+                <div class="template-item" @click="useTemplate('统计每个分类的数量')">
+                  <span class="template-text">统计每个分类的数量</span>
+                </div>
+                <div class="template-item" @click="useTemplate('计算某字段的平均值')">
+                  <span class="template-text">计算某字段的平均值</span>
+                </div>
+                <div class="template-item" @click="useTemplate('计算某字段的总和')">
+                  <span class="template-text">计算某字段的总和</span>
+                </div>
+              </div>
+            </el-collapse-item>
+            <el-collapse-item title="📈 趋势分析" name="trend">
+              <div class="template-list">
+                <div class="template-item" @click="useTemplate('按日期统计每天的数量')">
+                  <span class="template-text">按日期统计每天的数量</span>
+                </div>
+                <div class="template-item" @click="useTemplate('按月份统计趋势')">
+                  <span class="template-text">按月份统计趋势</span>
+                </div>
+                <div class="template-item" @click="useTemplate('对比本月和上月的数据')">
+                  <span class="template-text">对比本月和上月的数据</span>
+                </div>
+              </div>
+            </el-collapse-item>
+            <el-collapse-item title="🔍 数据查询" name="query">
+              <div class="template-list">
+                <div class="template-item" @click="useTemplate('查询最近10条记录')">
+                  <span class="template-text">查询最近10条记录</span>
+                </div>
+                <div class="template-item" @click="useTemplate('查找重复数据')">
+                  <span class="template-text">查找重复数据</span>
+                </div>
+                <div class="template-item" @click="useTemplate('查询空值记录')">
+                  <span class="template-text">查询空值记录</span>
+                </div>
+                <div class="template-item" @click="useTemplate('多表关联查询')">
+                  <span class="template-text">多表关联查询</span>
+                </div>
+              </div>
+            </el-collapse-item>
+            <el-collapse-item title="📋 排名对比" name="rank">
+              <div class="template-list">
+                <div class="template-item" @click="useTemplate('按某字段降序排列前10名')">
+                  <span class="template-text">按某字段降序排列前10名</span>
+                </div>
+                <div class="template-item" @click="useTemplate('按分组统计并排序')">
+                  <span class="template-text">按分组统计并排序</span>
+                </div>
+                <div class="template-item" @click="useTemplate('对比两个时间段的数据')">
+                  <span class="template-text">对比两个时间段的数据</span>
+                </div>
+              </div>
+            </el-collapse-item>
+          </el-collapse>
+        </el-card>
+
         <!-- 查询提示 -->
         <el-card class="tips-card">
           <template #header>
@@ -267,33 +364,41 @@
       :data-source-id="selectedDataSource"
       :title="currentDataSource ? `${currentDataSource.name} - 表结构` : '表结构'"
     />
+
+    <!-- 图表生成器 -->
+    <ChartGenerator
+      v-model="chartGeneratorVisible"
+      :data="chartData"
+    />
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   ChatDotRound, ChatLineRound, User, Cpu, CopyDocument,
   QuestionFilled, MagicStick, InfoFilled, Download,
-  CircleClose, Loading, Promotion, Delete, Setting, View
+  CircleClose, Loading, Promotion, Delete, Setting, View, Timer, TrendCharts
 } from '@element-plus/icons-vue'
 import { naturalLanguageToSQL, explainSQL as apiExplainSQL, optimizeSQL as apiOptimizeSQL } from '@/api/nl2sql'
 import { getDataSources } from '@/api/datasource'
 import { exportToExcel } from '@/utils/export'
+import { formatSql, highlightSql } from '@/utils/sqlFormatter'
 import TableStructureDrawer from '@/components/TableStructureDrawer.vue'
+import ChartGenerator from '@/components/ChartGenerator.vue'
 
 const router = useRouter()
 
 // 状态
 const inputQuery = ref('')
 const loading = ref(false)
-const chatHistory = ref([])
-const dataSources = ref([])
-const selectedDataSource = ref(null)
-const selectedProvider = ref('')  // 默认自动选择，优先使用真实 AI
-const chatHistoryRef = ref(null)
+const chatHistory = ref<any[]>([])
+const dataSources = ref<any[]>([])
+const selectedDataSource = ref<number | null>(null)
+const selectedProvider = ref('')
+const chatHistoryRef = ref<HTMLElement | null>(null)
 
 // 对话框状态
 const explainDialogVisible = ref(false)
@@ -304,6 +409,8 @@ const sqlOptimization = ref('')
 
 // 表结构抽屉状态
 const tableDrawerVisible = ref(false)
+const chartGeneratorVisible = ref(false)
+const chartData = ref<any[]>([])
 
 // 示例查询
 const examples = [
@@ -340,6 +447,14 @@ const loadDataSources = async () => {
 // 使用示例
 const useExample = (example) => {
   inputQuery.value = example
+}
+
+// 查询模板相关
+const activeTemplateCategory = ref('stats')
+
+const useTemplate = (template) => {
+  inputQuery.value = template
+  ElMessage.success('已填充模板，可修改后发送')
 }
 
 // 发送查询
@@ -392,6 +507,9 @@ const sendQuery = async () => {
       aiMessage.description = res.description
       aiMessage.intent = res.intent
       aiMessage.suggestedChart = res.suggestedChart
+      aiMessage.executionTime = res.executionTime
+      aiMessage.rowCount = res.rowCount
+      aiMessage.currentPage = 1
     } else {
       aiMessage.error = res.message || '查询失败'
     }
@@ -419,6 +537,18 @@ const scrollToBottom = () => {
       chatHistoryRef.value.scrollTop = chatHistoryRef.value.scrollHeight
     }
   })
+}
+
+// 切换格式化状态
+const toggleFormat = (msg) => {
+  msg.formatted = !msg.formatted
+}
+
+// 获取格式化后的 SQL
+const getFormattedSql = (msg) => {
+  if (!msg.sql) return ''
+  const sql = msg.formatted ? formatSql(msg.sql) : msg.sql
+  return highlightSql(sql)
 }
 
 // 复制 SQL
@@ -476,10 +606,25 @@ const exportData = (data) => {
   ElMessage.success('数据导出成功')
 }
 
+// 打开图表生成器
+const openChartGenerator = (data) => {
+  chartData.value = data
+  chartGeneratorVisible.value = true
+}
+
 // 获取表格列
 const getColumns = (data) => {
   if (!data || data.length === 0) return []
   return Object.keys(data[0])
+}
+
+// 获取分页数据
+const getPagedData = (msg) => {
+  if (!msg.data || msg.data.length === 0) return []
+  const page = msg.currentPage || 1
+  const start = (page - 1) * 20
+  const end = start + 20
+  return msg.data.slice(start, end)
 }
 
 // 清空历史
@@ -656,6 +801,25 @@ onMounted(() => {
                     margin: 0;
                     font-family: 'Courier New', monospace;
                     font-size: 13px;
+                    line-height: 1.5;
+
+                    :deep(.sql-keyword) {
+                      color: #569cd6;
+                      font-weight: 500;
+                    }
+
+                    :deep(.sql-string) {
+                      color: #ce9178;
+                    }
+
+                    :deep(.sql-number) {
+                      color: #b5cea8;
+                    }
+
+                    :deep(.sql-comment) {
+                      color: #6a9955;
+                      font-style: italic;
+                    }
                   }
                 }
 
@@ -679,9 +843,29 @@ onMounted(() => {
                     padding-top: 8px;
                     border-top: 1px solid #ebeef5;
 
+                    .stats-info {
+                      display: flex;
+                      align-items: center;
+                      gap: 16px;
+                    }
+
                     .record-count {
                       color: #909399;
                       font-size: 13px;
+                    }
+
+                    .execution-time {
+                      color: #67c23a;
+                      font-size: 13px;
+                      display: flex;
+                      align-items: center;
+                      gap: 4px;
+                    }
+
+                    .footer-right {
+                      display: flex;
+                      align-items: center;
+                      gap: 16px;
                     }
                   }
                 }
@@ -722,8 +906,35 @@ onMounted(() => {
 
   .info-card,
   .tips-card,
-  .quick-actions {
+  .quick-actions,
+  .template-card {
     margin-bottom: 20px;
+
+    .template-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .template-list {
+      .template-item {
+        padding: 8px 12px;
+        margin: 4px 0;
+        background: #f5f7fa;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
+
+        &:hover {
+          background: #e6f0ff;
+          color: #409eff;
+        }
+
+        .template-text {
+          font-size: 13px;
+        }
+      }
+    }
 
     .datasource-info {
       .info-item {

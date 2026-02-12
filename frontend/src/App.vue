@@ -1,5 +1,8 @@
 <template>
   <div class="app-container">
+    <!-- 后端状态提示条 -->
+    <BackendStatusBar />
+    
     <el-container>
       <!-- 侧边栏 -->
       <el-aside width="220px" class="sidebar">
@@ -130,21 +133,26 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, onUnmounted } from 'vue'
 import { Connection, DataLine, Coin, Share, CircleCheck, Lock, Document, MagicStick, TrendCharts, Reading } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import Breadcrumb from './components/Breadcrumb.vue'
+import BackendStatusBar from './components/BackendStatusBar.vue'
+import { useBackendStatus } from './composables/useBackendStatus'
+
+const { startMonitoring, stopMonitoring, checkStatus } = useBackendStatus()
+
+onMounted(() => {
+  startMonitoring(30000)
+})
+
+onUnmounted(() => {
+  stopMonitoring()
+})
 
 const checkConnection = async () => {
-  try {
-    const result = await window.electronAPI.getDataSummary()
-    if (result.success) {
-      ElMessage.success('后端连接正常')
-    } else {
-      ElMessage.error('后端连接失败')
-    }
-  } catch (error) {
-    ElMessage.error('无法连接到后端服务')
-  }
+  await checkStatus()
+  ElMessage.success('已检测后端连接状态')
 }
 </script>
 

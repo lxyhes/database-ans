@@ -99,7 +99,7 @@
   </el-drawer>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Grid, Refresh, Search, ArrowRight, Loading } from '@element-plus/icons-vue'

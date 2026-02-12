@@ -63,8 +63,10 @@ public class NL2SQLController {
             );
             
             if (result.isSuccess()) {
-                // 执行 SQL 获取数据
+                // 执行 SQL 获取数据，并记录耗时
+                long startTime = System.currentTimeMillis();
                 List<Map<String, Object>> data = dataQueryService.executeQuery(result.getSql());
+                long executionTime = System.currentTimeMillis() - startTime;
                 
                 Map<String, Object> response = new HashMap<>();
                 response.put("success", true);
@@ -74,6 +76,8 @@ public class NL2SQLController {
                 response.put("description", result.getDescription());
                 response.put("suggestedChart", result.getSuggestedChart());
                 response.put("dataSourceId", dataQueryService.getCurrentDataSourceId());
+                response.put("executionTime", executionTime);
+                response.put("rowCount", data != null ? data.size() : 0);
                 
                 return ResponseEntity.ok(response);
             } else {

@@ -142,7 +142,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, VideoPlay, TrendCharts, Edit, Delete } from '@element-plus/icons-vue'
