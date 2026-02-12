@@ -87,11 +87,13 @@
         </a-layout-header>
         
         <a-layout-content class="main-content">
-          <router-view v-slot="{ Component }">
-            <transition name="fade" mode="out-in">
-              <component :is="Component" />
-            </transition>
-          </router-view>
+          <div class="content-wrapper">
+            <router-view v-slot="{ Component }">
+              <transition name="fade" mode="out-in">
+                <component :is="Component" />
+              </transition>
+            </router-view>
+          </div>
         </a-layout-content>
       </a-layout>
     </a-layout>
@@ -120,29 +122,23 @@ const route = useRoute()
 const router = useRouter()
 const { startMonitoring, stopMonitoring, checkStatus } = useBackendStatus()
 
-// 侧边栏收起状态
 const collapsed = ref(false)
 const openKeys = ref<string[]>(['/data', '/ai'])
 
-// 当前激活的菜单
 const activeKey = computed(() => route.path)
 
-// 处理侧边栏收起/展开
 const handleCollapse = (val: boolean) => {
   collapsed.value = val
 }
 
-// 处理菜单选择
 const handleMenuSelect = (key: string) => {
   router.push(key)
 }
 
-// 处理子菜单点击
 const handleSubMenuClick = (key: string, openKeysList: string[]) => {
   openKeys.value = openKeysList
 }
 
-// 检查连接
 const checkConnection = async () => {
   await checkStatus()
   Message.success('已检测后端连接状态')
@@ -160,17 +156,26 @@ onUnmounted(() => {
 <style scoped lang="scss">
 .app-container {
   height: 100vh;
+  width: 100vw;
+  min-width: 1200px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .main-layout {
   flex: 1;
+  overflow: hidden;
 }
 
 .sidebar {
+  flex-shrink: 0;
+
   :deep(.arco-layout-sider-children) {
     background: #232324;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .logo {
@@ -183,6 +188,7 @@ onUnmounted(() => {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     white-space: nowrap;
     overflow: hidden;
+    flex-shrink: 0;
 
     .logo-text {
       margin-left: 12px;
@@ -214,12 +220,14 @@ onUnmounted(() => {
 
 .header {
   height: 64px;
+  min-height: 64px;
   padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   background: #fff;
   border-bottom: 1px solid #e5e6eb;
+  flex-shrink: 0;
 
   .header-left {
     display: flex;
@@ -235,8 +243,16 @@ onUnmounted(() => {
 
 .main-content {
   background: #f2f3f5;
+  flex: 1;
+  overflow: hidden;
+  padding: 0;
+}
+
+.content-wrapper {
+  height: 100%;
   padding: 20px;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .fade-enter-active,

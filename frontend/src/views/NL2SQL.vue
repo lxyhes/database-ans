@@ -650,8 +650,7 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .nl2sql-page {
-  padding: 20px;
-  height: calc(100vh - 100px);
+  height: 100%;
   overflow: hidden;
 
   .main-row {
@@ -676,12 +675,15 @@ onMounted(() => {
       display: flex;
       flex-direction: column;
       padding: 0;
+      min-height: 0;
     }
 
     .card-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
 
       .title {
         font-size: 16px;
@@ -694,6 +696,7 @@ onMounted(() => {
 
     .chat-history {
       flex: 1;
+      min-height: 0;
       overflow-y: auto;
       padding: 20px;
       background: #f7f8fa;
@@ -751,6 +754,7 @@ onMounted(() => {
 
               .content {
                 flex: 1;
+                min-width: 0;
                 background: #fff;
                 padding: 12px 16px;
                 border-radius: 8px;
@@ -759,6 +763,7 @@ onMounted(() => {
                 .text {
                   color: #1d2129;
                   line-height: 1.6;
+                  word-break: break-word;
                 }
               }
             }
@@ -783,6 +788,7 @@ onMounted(() => {
 
               .content {
                 flex: 1;
+                min-width: 0;
 
                 .sql-block {
                   background: #1d2129;
@@ -798,6 +804,8 @@ onMounted(() => {
                     background: #272e3b;
                     color: #fff;
                     font-size: 13px;
+                    flex-wrap: wrap;
+                    gap: 8px;
 
                     .actions {
                       display: flex;
@@ -870,6 +878,8 @@ onMounted(() => {
                     margin-top: 8px;
                     padding-top: 8px;
                     border-top: 1px solid #e5e6eb;
+                    flex-wrap: wrap;
+                    gap: 8px;
 
                     .stats-info {
                       display: flex;
@@ -928,12 +938,14 @@ onMounted(() => {
       padding: 16px 20px;
       border-top: 1px solid #e5e6eb;
       background: #fff;
+      flex-shrink: 0;
 
       .input-actions {
         display: flex;
         justify-content: flex-end;
         gap: 10px;
         margin-top: 10px;
+        flex-wrap: wrap;
       }
     }
   }
@@ -943,11 +955,10 @@ onMounted(() => {
   .quick-actions,
   .template-card {
     margin-bottom: 16px;
-    max-height: calc(50vh - 60px);
-    overflow-y: auto;
+    flex-shrink: 0;
 
     :deep(.arco-card-body) {
-      max-height: calc(50vh - 110px);
+      max-height: 200px;
       overflow-y: auto;
     }
 

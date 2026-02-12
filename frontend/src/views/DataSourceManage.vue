@@ -502,16 +502,22 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .datasource-manage {
-  padding: 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .page-header {
   margin-bottom: 20px;
+  flex-shrink: 0;
 
   .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
 
     .title {
       font-size: 18px;
@@ -521,6 +527,10 @@ onMounted(() => {
 }
 
 .datasource-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+
   .datasource-card {
     margin-bottom: 20px;
     transition: all 0.3s;
@@ -552,6 +562,7 @@ onMounted(() => {
         justify-content: center;
         margin-right: 12px;
         position: relative;
+        flex-shrink: 0;
 
         .status-indicator {
           position: absolute;
@@ -576,6 +587,7 @@ onMounted(() => {
 
       .datasource-info {
         flex: 1;
+        min-width: 0;
 
         .datasource-name {
           margin: 0 0 4px 0;
@@ -584,6 +596,7 @@ onMounted(() => {
           display: flex;
           align-items: center;
           gap: 8px;
+          flex-wrap: wrap;
         }
 
         .datasource-type {
@@ -614,6 +627,7 @@ onMounted(() => {
           color: #1d2129;
           font-size: 13px;
           font-weight: 500;
+          word-break: break-all;
         }
       }
     }
@@ -625,6 +639,8 @@ onMounted(() => {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
 
       .update-time {
         color: #86909c;
@@ -638,5 +654,6 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+  flex-wrap: wrap;
 }
 </style>

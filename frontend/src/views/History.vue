@@ -227,18 +227,36 @@ onMounted(() => {
 
 <style scoped>
 .history-page {
-  padding: 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.history-page :deep(.arco-card) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.history-page :deep(.arco-card-body) {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .header-actions {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .history-item {
@@ -265,6 +283,7 @@ onMounted(() => {
   font-size: 12px;
   color: #4e5969;
   margin-bottom: 8px;
+  word-break: break-word;
 }
 
 .history-sql code {
@@ -278,5 +297,6 @@ onMounted(() => {
 .history-actions {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 </style>

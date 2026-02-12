@@ -1,105 +1,81 @@
 <template>
   <div class="dashboard">
     <!-- 指标卡片 -->
-    <a-row :gutter="20" class="metrics-row">
-      <a-col :span="6">
-        <a-card class="metric-card" hoverable>
-          <div class="metric-icon" style="background: #165dff;">
-            <icon-tag :size="24" />
-          </div>
-          <div class="metric-content">
-            <div class="metric-value">¥{{ formatNumber(metrics.totalSales) }}</div>
-            <div class="metric-label">总销售额</div>
-          </div>
-        </a-card>
-      </a-col>
+    <div class="metrics-row">
+      <div class="metric-card">
+        <div class="metric-icon" style="background: #165dff;">
+          <icon-tag :size="24" />
+        </div>
+        <div class="metric-content">
+          <div class="metric-value">¥{{ formatNumber(metrics.totalSales) }}</div>
+          <div class="metric-label">总销售额</div>
+        </div>
+      </div>
       
-      <a-col :span="6">
-        <a-card class="metric-card" hoverable>
-          <div class="metric-icon" style="background: #00b42a;">
-            <icon-gift :size="24" />
-          </div>
-          <div class="metric-content">
-            <div class="metric-value">{{ formatNumber(metrics.orderCount) }}</div>
-            <div class="metric-label">订单数量</div>
-          </div>
-        </a-card>
-      </a-col>
+      <div class="metric-card">
+        <div class="metric-icon" style="background: #00b42a;">
+          <icon-gift :size="24" />
+        </div>
+        <div class="metric-content">
+          <div class="metric-value">{{ formatNumber(metrics.orderCount) }}</div>
+          <div class="metric-label">订单数量</div>
+        </div>
+      </div>
       
-      <a-col :span="6">
-        <a-card class="metric-card" hoverable>
-          <div class="metric-icon" style="background: #ff7d00;">
-            <icon-user :size="24" />
-          </div>
-          <div class="metric-content">
-            <div class="metric-value">{{ formatNumber(metrics.customerCount) }}</div>
-            <div class="metric-label">客户数量</div>
-          </div>
-        </a-card>
-      </a-col>
+      <div class="metric-card">
+        <div class="metric-icon" style="background: #ff7d00;">
+          <icon-user :size="24" />
+        </div>
+        <div class="metric-content">
+          <div class="metric-value">{{ formatNumber(metrics.customerCount) }}</div>
+          <div class="metric-label">客户数量</div>
+        </div>
+      </div>
       
-      <a-col :span="6">
-        <a-card class="metric-card" hoverable>
-          <div class="metric-icon" style="background: #f53f3f;">
-            <icon-apps :size="24" />
-          </div>
-          <div class="metric-content">
-            <div class="metric-value">{{ formatNumber(metrics.productCount) }}</div>
-            <div class="metric-label">产品数量</div>
-          </div>
-        </a-card>
-      </a-col>
-    </a-row>
+      <div class="metric-card">
+        <div class="metric-icon" style="background: #f53f3f;">
+          <icon-apps :size="24" />
+        </div>
+        <div class="metric-content">
+          <div class="metric-value">{{ formatNumber(metrics.productCount) }}</div>
+          <div class="metric-label">产品数量</div>
+        </div>
+      </div>
+    </div>
 
     <!-- 图表区域 -->
-    <a-row :gutter="20" class="charts-row">
-      <a-col :span="12">
-        <a-card class="chart-card" hoverable>
-          <template #title>
-            <div class="card-header">
-              <span>销售趋势</span>
-              <a-tag color="arcoblue">近7天</a-tag>
-            </div>
-          </template>
-          <v-chart class="chart" :option="salesTrendOption" autoresize />
-        </a-card>
-      </a-col>
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="card-header">
+          <span>销售趋势</span>
+          <a-tag color="arcoblue">近7天</a-tag>
+        </div>
+        <v-chart class="chart" :option="salesTrendOption" autoresize />
+      </div>
       
-      <a-col :span="12">
-        <a-card class="chart-card" hoverable>
-          <template #title>
-            <div class="card-header">
-              <span>各地区销售对比</span>
-            </div>
-          </template>
-          <v-chart class="chart" :option="regionSalesOption" autoresize />
-        </a-card>
-      </a-col>
-    </a-row>
+      <div class="chart-card">
+        <div class="card-header">
+          <span>各地区销售对比</span>
+        </div>
+        <v-chart class="chart" :option="regionSalesOption" autoresize />
+      </div>
+    </div>
 
-    <a-row :gutter="20" class="charts-row">
-      <a-col :span="12">
-        <a-card class="chart-card" hoverable>
-          <template #title>
-            <div class="card-header">
-              <span>产品销售占比</span>
-            </div>
-          </template>
-          <v-chart class="chart" :option="productSalesOption" autoresize />
-        </a-card>
-      </a-col>
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="card-header">
+          <span>产品销售占比</span>
+        </div>
+        <v-chart class="chart" :option="productSalesOption" autoresize />
+      </div>
       
-      <a-col :span="12">
-        <a-card class="chart-card" hoverable>
-          <template #title>
-            <div class="card-header">
-              <span>客户购买频次</span>
-            </div>
-          </template>
-          <v-chart class="chart" :option="customerPurchaseOption" autoresize />
-        </a-card>
-      </a-col>
-    </a-row>
+      <div class="chart-card">
+        <div class="card-header">
+          <span>客户购买频次</span>
+        </div>
+        <v-chart class="chart" :option="customerPurchaseOption" autoresize />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -138,7 +114,6 @@ const metrics = ref({
   productCount: 0
 })
 
-// 销售趋势图配置
 const salesTrendOption = ref({
   tooltip: { trigger: 'axis' },
   xAxis: {
@@ -163,7 +138,6 @@ const salesTrendOption = ref({
   }]
 })
 
-// 地区销售对比图配置
 const regionSalesOption = ref({
   tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
   xAxis: {
@@ -178,7 +152,6 @@ const regionSalesOption = ref({
   }]
 })
 
-// 产品销售占比图配置
 const productSalesOption = ref({
   tooltip: { trigger: 'item' },
   legend: { orient: 'vertical', left: 'left' },
@@ -205,7 +178,6 @@ const productSalesOption = ref({
   }]
 })
 
-// 客户购买频次图配置
 const customerPurchaseOption = ref({
   tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
   xAxis: {
@@ -237,9 +209,7 @@ const loadDashboardData = async () => {
   try {
     const result = await window.electronAPI.getDashboardData()
     if (result.success) {
-      // 更新数据
       metrics.value = result.data.metrics || metrics.value
-      // 可以在这里更新图表数据
     }
   } catch (error) {
     Message.error('加载仪表盘数据失败')
@@ -253,19 +223,26 @@ onMounted(() => {
 
 <style scoped>
 .dashboard {
-  padding: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .metrics-row {
-  margin-bottom: 20px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  flex-shrink: 0;
 }
 
 .metric-card {
-  :deep(.arco-card-body) {
-    display: flex;
-    align-items: center;
-    padding: 16px;
-  }
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .metric-icon {
@@ -277,10 +254,12 @@ onMounted(() => {
   justify-content: center;
   margin-right: 16px;
   color: #fff;
+  flex-shrink: 0;
 }
 
 .metric-content {
   flex: 1;
+  min-width: 0;
 }
 
 .metric-value {
@@ -288,6 +267,9 @@ onMounted(() => {
   font-weight: 600;
   color: var(--color-text-1);
   margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .metric-label {
@@ -296,20 +278,34 @@ onMounted(() => {
 }
 
 .charts-row {
-  margin-bottom: 20px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  flex: 1;
+  min-height: 0;
 }
 
 .chart-card {
-  height: 400px;
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 16px;
+  font-weight: 500;
+  color: var(--color-text-1);
+  flex-shrink: 0;
 }
 
 .chart {
-  height: 320px;
+  flex: 1;
+  min-height: 250px;
 }
 </style>
