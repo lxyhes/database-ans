@@ -3,7 +3,6 @@ package com.data.assistant.controller;
 import com.data.assistant.model.QueryRequest;
 import com.data.assistant.model.QueryResponse;
 import com.data.assistant.service.DataQueryService;
-import com.data.assistant.service.DataSourceService;
 import com.data.assistant.service.NaturalLanguageProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,14 +25,11 @@ public class QueryController {
     @Autowired
     private DataQueryService dataQueryService;
     
-    @Autowired
-    private DataSourceService dataSourceService;
-    
     @PostMapping("/natural")
     public QueryResponse processNaturalLanguageQuery(@RequestBody QueryRequest request) {
         try {
             if (request.getDataSourceId() != null) {
-                dataSourceService.switchDataSource(request.getDataSourceId());
+                dataQueryService.switchDataSource(request.getDataSourceId());
             }
             
             String sqlQuery = naturalLanguageProcessor.parseNaturalLanguageToSQL(request.getNaturalLanguageQuery());
@@ -55,7 +51,7 @@ public class QueryController {
     public QueryResponse processAnalysisQuery(@RequestBody QueryRequest request) {
         try {
             if (request.getDataSourceId() != null) {
-                dataSourceService.switchDataSource(request.getDataSourceId());
+                dataQueryService.switchDataSource(request.getDataSourceId());
             }
             
             String analysisType = extractAnalysisType(request.getNaturalLanguageQuery());
