@@ -1,5 +1,13 @@
 @echo off
-echo Starting Data Analysis Assistant...
+setlocal EnableDelayedExpansion
+
+:: Project Identity Configuration
+set "PROJECT_NAME=Data Analysis Assistant"
+set "PROJECT_ID=DAA"
+set "WINDOW_TITLE_PREFIX=[%PROJECT_ID%]"
+
+:RESTART
+echo Starting %PROJECT_NAME%...
 echo.
 
 :: Set project paths
@@ -28,41 +36,77 @@ if not exist "%FRONTEND_DIR%" (
 echo Directories exist. Proceeding...
 echo.
 
-:: Kill existing processes first (only those started by this script)
-echo Stopping existing services...
-taskkill /F /FI "WINDOWTITLE eq Data Analysis Assistant - iFlow CLI*" 2>nul
-taskkill /F /FI "WINDOWTITLE eq Data Analysis Assistant - Backend*" 2>nul
-taskkill /F /FI "WINDOWTITLE eq Data Analysis Assistant - Frontend*" 2>nul
+:: Kill existing project windows first (by window title, not process name)
+echo Stopping existing %PROJECT_NAME% services...
+call :StopProjectServices
 
-:: Wait for processes to terminate
 timeout /t 2 /nobreak >nul
 
 echo Existing services stopped.
 echo.
 
-:: Start iFlow CLI in a new window
+:: Start iFlow CLI in a new window with project identifier
 echo Starting iFlow CLI on port 8090...
-start "Data Analysis Assistant - iFlow CLI" cmd /k "iflow --experimental-acp --port 8090"
+start "%WINDOW_TITLE_PREFIX% %PROJECT_NAME% - iFlow CLI [Port:8090]" /D "%PROJECT_ROOT%" cmd /k "iflow --experimental-acp --port 8090"
 
-:: Wait a bit for iFlow to start
-timeout /t 3
+timeout /t 3 /nobreak >nul
 
-:: Start backend in a new window
+:: Start backend in a new window with project identifier
 echo Starting backend service on port 9090...
-start "Data Analysis Assistant - Backend" cmd /k "cd /d "%BACKEND_DIR%" && mvn spring-boot:run"
+start "%WINDOW_TITLE_PREFIX% %PROJECT_NAME% - Backend [SpringBoot]" /D "%BACKEND_DIR%" cmd /k "mvn spring-boot:run"
 
-:: Wait a bit for backend to start
-timeout /t 5
+timeout /t 5 /nobreak >nul
 
-:: Start frontend in a new window with hot reload
+:: Start frontend in a new window with project identifier
 echo Starting frontend application with hot reload...
-start "Data Analysis Assistant - Frontend" cmd /k "cd /d "%FRONTEND_DIR%" && npm start"
+start "%WINDOW_TITLE_PREFIX% %PROJECT_NAME% - Frontend [Vite-NPM]" /D "%FRONTEND_DIR%" cmd /k "npm start"
 
 echo.
-echo All services have been started in separate windows:
+echo ============================================
+echo %PROJECT_NAME% services started:
 echo   1. iFlow CLI (port 8090)
 echo   2. Backend (port 9090)
 echo   3. Frontend (with hot reload)
+echo ============================================
 echo.
-echo Check the opened windows for any errors.
-pause
+echo Press R to Restart all services
+echo Press Q to Quit and stop all services
+echo.
+
+set /p choice="Your choice (R/Q): "
+
+if /i "%choice%"=="R" goto RESTART
+if /i "%choice%"=="Q" goto QUIT
+
+goto QUIT
+
+:: Function to stop only this project's services
+:StopProjectServices
+:: Close windows by title (only project-related windows)
+taskkill /F /FI "WINDOWTITLE eq %WINDOW_TITLE_PREFIX% %PROJECT_NAME% - iFlow CLI*" 2>nul
+taskkill /F /FI "WINDOWTITLE eq %WINDOW_TITLE_PREFIX% %PROJECT_NAME% - Backend*" 2>nul
+taskkill /F /FI "WINDOWTITLE eq %WINDOW_TITLE_PREFIX% %PROJECT_NAME% - Frontend*" 2>nul
+
+:: Only kill node/java processes that are running from this project directory
+:: This is done by checking the command line arguments
+for /f "tokens=2 delims=," %%a in ('tasklist /FI "IMAGENAME eq node.exe" /FO CSV /NH 2^>nul') do (
+    for /f "delims=" %%b in ('wmic process where "ProcessId=%%~a" get CommandLine /value 2^>nul ^| findstr /I "%FRONTEND_DIR%"') do (
+        taskkill /PID %%~a /F 2>nul
+    )
+)
+
+for /f "tokens=2 delims=," %%a in ('tasklist /FI "IMAGENAME eq java.exe" /FO CSV /NH 2^>nul') do (
+    for /f "delims=" %%b in ('wmic process where "ProcessId=%%~a" get CommandLine /value 2^>nul ^| findstr /I "%BACKEND_DIR%"') do (
+        taskkill /PID %%~a /F 2>nul
+    )
+)
+
+exit /b
+
+:QUIT
+echo.
+echo Stopping all %PROJECT_NAME% services...
+call :StopProjectServices
+
+echo All %PROJECT_NAME% services stopped.
+timeout /t 2 /nobreak >nul

@@ -33,7 +33,12 @@
           <template #title>
             <div class="card-header">
               <span>自然语言查询</span>
-              <a-tag color="green">AI 驱动</a-tag>
+              <div class="header-right">
+                <a-select v-model="selectedDataSource" placeholder="选择数据源" style="width: 200px;" @change="onDataSourceChange">
+                  <a-option v-for="ds in dataSources" :key="ds.id" :value="ds.id">{{ ds.name }}</a-option>
+                </a-select>
+                <a-tag color="green">AI 驱动</a-tag>
+              </div>
             </div>
           </template>
 
@@ -85,7 +90,7 @@
             <div class="card-header">
               <span>查询结果</span>
               <div class="result-actions">
-                <a-tag v-if="queryResult.sql" color="arcoblue" class="sql-tag">{{ queryResult.sql }}</a-tag>
+                <a-tag v-if="queryResult.sqlQuery" color="arcoblue" class="sql-tag">{{ queryResult.sqlQuery }}</a-tag>
                 <a-button type="primary" size="small" @click="exportResult">
                   <template #icon><icon-download /></template>
                   导出
@@ -148,7 +153,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, h } from 'vue'
+import { ref, onMounted } from 'vue'
 import { 
   IconSearch, 
   IconBarChart, 
@@ -159,6 +164,7 @@ import {
   IconDownload 
 } from '@arco-design/web-vue/es/icon'
 import { Message } from '@arco-design/web-vue'
+import request from '@/utils/request'
 
 const queryText = ref('')
 const loading = ref(false)
@@ -166,6 +172,8 @@ const analyzing = ref(false)
 const loadingTables = ref(false)
 const queryResult = ref<any>(null)
 const tableTree = ref<any[]>([])
+const dataSources = ref<any[]>([])
+const selectedDataSource = ref<number | null>(null)
 
 const querySuggestions = [
   '显示总销售额',
@@ -176,17 +184,42 @@ const querySuggestions = [
   '查询复购率最高的客户'
 ]
 
+const loadDataSources = async () => {
+  try {
+    const res = await request.get('/api/datasources')
+    dataSources.value = res.data || res
+    if (dataSources.value.length > 0) {
+      const defaultDs = dataSources.value.find(ds => ds.isDefault || ds.default)
+      selectedDataSource.value = defaultDs ? defaultDs.id : dataSources.value[0].id
+      loadTables()
+    }
+  } catch (error) {
+    Message.error('加载数据源失败')
+  }
+}
+
+const onDataSourceChange = () => {
+  tableTree.value = []
+  loadTables()
+}
+
 const loadTables = async () => {
+  if (!selectedDataSource.value) {
+    Message.warning('请先选择数据源')
+    return
+  }
+  
   loadingTables.value = true
   try {
-    const result = await window.electronAPI.getAllTables()
-    if (result.success) {
-      tableTree.value = result.data.tables?.map((table: string) => ({
-        name: table,
-        type: 'table',
-        children: []
-      })) || []
-    }
+    const res = await request.get('/api/data/tables', {
+      params: { dataSourceId: selectedDataSource.value }
+    })
+    const tables = res.data || res
+    tableTree.value = tables.map((table: string) => ({
+      name: table,
+      type: 'table',
+      children: []
+    }))
   } catch (error) {
     Message.error('加载表结构失败')
   } finally {
@@ -198,8 +231,10 @@ const handleNodeSelect = async (selectedKeys: string[], data: any) => {
   const node = data.node
   if (node.type === 'table') {
     try {
-      const result = await window.electronAPI.getTableSchema(node.name)
-      if (result.success) {
+      const res = await request.get(`/api/data/schema/${node.name}`, {
+        params: { dataSourceId: selectedDataSource.value }
+      })
+      if (res.data) {
         Message.success(`已选择表: ${node.name}`)
       }
     } catch (error) {
@@ -214,14 +249,22 @@ const executeQuery = async () => {
     return
   }
 
+  if (!selectedDataSource.value) {
+    Message.warning('请先选择数据源')
+    return
+  }
+
   loading.value = true
   try {
-    const result = await window.electronAPI.queryNaturalLanguage(queryText.value)
-    if (result.success) {
-      queryResult.value = result.data
+    const res = await request.post('/api/query/natural', {
+      naturalLanguageQuery: queryText.value,
+      dataSourceId: selectedDataSource.value
+    })
+    if (res.success) {
+      queryResult.value = res
       Message.success('查询成功')
     } else {
-      Message.error(result.message || '查询失败')
+      Message.error(res.message || '查询失败')
     }
   } catch (error) {
     Message.error('查询执行失败')
@@ -236,14 +279,25 @@ const analyzeData = async () => {
     return
   }
 
+  if (!selectedDataSource.value) {
+    Message.warning('请先选择数据源')
+    return
+  }
+
   analyzing.value = true
   try {
-    const result = await window.electronAPI.analyzeData(queryText.value)
-    if (result.success) {
-      queryResult.value = result.data
+    const res = await request.post('/api/query/analyze', {
+      naturalLanguageQuery: queryText.value,
+      dataSourceId: selectedDataSource.value
+    })
+    if (res.success) {
+      queryResult.value = {
+        ...res,
+        analysis: res.message
+      }
       Message.success('分析完成')
     } else {
-      Message.error(result.message || '分析失败')
+      Message.error(res.message || '分析失败')
     }
   } catch (error) {
     Message.error('分析执行失败')
@@ -259,14 +313,12 @@ const saveCurrentQuery = async () => {
   }
 
   try {
-    const result = await window.electronAPI.saveQuery({
+    await request.post('/api/query-history', {
       queryText: queryText.value,
-      sqlQuery: queryResult.value?.sql || '',
+      sqlQuery: queryResult.value?.sqlQuery || '',
       queryType: 'natural_language'
     })
-    if (result.success) {
-      Message.success('查询已收藏')
-    }
+    Message.success('查询已收藏')
   } catch (error) {
     Message.error('保存失败')
   }
@@ -281,27 +333,58 @@ const formatAnalysis = (analysis: string) => {
 }
 
 const exportResult = () => {
-  Message.info('导出功能开发中')
+  if (!queryResult.value?.data) {
+    Message.warning('没有可导出的数据')
+    return
+  }
+  
+  try {
+    const data = queryResult.value.data
+    const headers = Object.keys(data[0])
+    const csvContent = [
+      headers.join(','),
+      ...data.map((row: any) => headers.map(h => row[h]).join(','))
+    ].join('\n')
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = 'query_result.csv'
+    link.click()
+    Message.success('导出成功')
+  } catch (error) {
+    Message.error('导出失败')
+  }
 }
 
 onMounted(() => {
-  loadTables()
+  loadDataSources()
 })
 </script>
 
 <style scoped>
 .query-page {
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .schema-card {
-  height: calc(100vh - 140px);
+  height: 100%;
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .tree-node {
@@ -325,6 +408,7 @@ onMounted(() => {
 .query-actions {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .result-card {
@@ -335,6 +419,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .sql-tag {

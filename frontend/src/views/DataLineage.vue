@@ -28,12 +28,12 @@
             <template #title>
               <span>血缘追溯</span>
             </template>
-            <a-form layout="vertical">
+            <a-form :model="traceForm" layout="vertical">
               <a-form-item label="表名">
-                <a-input v-model="traceTable" placeholder="输入表名" />
+                <a-input v-model="traceForm.table" placeholder="输入表名" />
               </a-form-item>
               <a-form-item label="字段名">
-                <a-input v-model="traceColumn" placeholder="输入字段名" />
+                <a-input v-model="traceForm.column" placeholder="输入字段名" />
               </a-form-item>
               <a-form-item>
                 <a-space>
@@ -115,8 +115,10 @@ const dataSources = ref([])
 const tables = ref([])
 const selectedDataSource = ref(null)
 const selectedTable = ref(null)
-const traceTable = ref('')
-const traceColumn = ref('')
+const traceForm = ref({
+  table: '',
+  column: ''
+})
 const traceResults = ref([])
 const dialogVisible = ref(false)
 
@@ -218,13 +220,13 @@ const saveLineage = async () => {
 }
 
 const traceUpstream = async () => {
-  if (!traceTable.value || !traceColumn.value) {
+  if (!traceForm.value.table || !traceForm.value.column) {
     Message.warning('请输入表名和字段名')
     return
   }
   try {
     const res = await request.get(`/api/lineage/${selectedDataSource.value}/upstream`, {
-      params: { tableName: traceTable.value, columnName: traceColumn.value }
+      params: { tableName: traceForm.value.table, columnName: traceForm.value.column }
     })
     traceResults.value = res.data.map(item => ({ ...item, type: 'primary' }))
   } catch (error) {
@@ -233,13 +235,13 @@ const traceUpstream = async () => {
 }
 
 const traceDownstream = async () => {
-  if (!traceTable.value || !traceColumn.value) {
+  if (!traceForm.value.table || !traceForm.value.column) {
     Message.warning('请输入表名和字段名')
     return
   }
   try {
     const res = await request.get(`/api/lineage/${selectedDataSource.value}/downstream`, {
-      params: { tableName: traceTable.value, columnName: traceColumn.value }
+      params: { tableName: traceForm.value.table, columnName: traceForm.value.column }
     })
     traceResults.value = res.data.map(item => ({ ...item, type: 'success' }))
   } catch (error) {

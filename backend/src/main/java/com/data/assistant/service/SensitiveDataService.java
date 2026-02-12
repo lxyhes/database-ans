@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.sql.DataSource;
 import java.sql.*;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -19,7 +18,7 @@ public class SensitiveDataService {
     private SensitiveColumnRepository sensitiveColumnRepository;
 
     @Autowired
-    private DataSource jdbcDataSource;
+    private DynamicDataSourceService dynamicDataSourceService;
 
     // 字段名模式匹配
     private static final Map<SensitiveDataType, List<String>> COLUMN_NAME_PATTERNS = new HashMap<>();
@@ -38,7 +37,7 @@ public class SensitiveDataService {
         // 清除该表的历史扫描结果
         sensitiveColumnRepository.deleteByDataSourceIdAndTableName(dataSourceId, tableName);
 
-        try (Connection connection = jdbcDataSource.getConnection()) {
+        try (Connection connection = dynamicDataSourceService.getJdbcTemplate(dataSourceId).getDataSource().getConnection()) {
             DatabaseMetaData metaData = connection.getMetaData();
 
             // 1. 基于字段名识别
@@ -48,7 +47,7 @@ public class SensitiveDataService {
             scanByContent(connection, dataSourceId, tableName);
 
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to scan sensitive data", e);
+            throw new RuntimeException("Failed to scan sensitive data: " + e.getMessage(), e);
         }
     }
 
@@ -83,9 +82,9 @@ public class SensitiveDataService {
         // 对每个列采样检查
         for (String column : columns) {
             // 跳过已识别的列
-            Optional<SensitiveColumn> existing = sensitiveColumnRepository
+            List<SensitiveColumn> existing = sensitiveColumnRepository
                     .findByDataSourceIdAndTableNameAndColumnName(dataSourceId, tableName, column);
-            if (existing.isPresent()) continue;
+            if (!existing.isEmpty()) continue;
 
             // 采样数据
             String sql = String.format("SELECT DISTINCT %s FROM %s WHERE %s IS NOT NULL LIMIT 100", column, tableName, column);

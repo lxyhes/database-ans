@@ -16,7 +16,7 @@ public interface SensitiveColumnRepository extends JpaRepository<SensitiveColumn
 
     List<SensitiveColumn> findByDataSourceIdAndTableName(Long dataSourceId, String tableName);
 
-    Optional<SensitiveColumn> findByDataSourceIdAndTableNameAndColumnName(Long dataSourceId, String tableName, String columnName);
+    List<SensitiveColumn> findByDataSourceIdAndTableNameAndColumnName(Long dataSourceId, String tableName, String columnName);
 
     @Modifying
     @Query("DELETE FROM SensitiveColumn sc WHERE sc.dataSourceId = ?1")

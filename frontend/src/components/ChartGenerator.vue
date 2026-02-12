@@ -25,9 +25,9 @@
 
       <!-- 字段选择 -->
       <div class="field-selector">
-        <a-form layout="vertical">
+        <a-form :model="chartForm" layout="vertical">
           <a-form-item label="X轴字段">
-            <a-select v-model="xField" placeholder="选择X轴字段" style="width: 100%">
+            <a-select v-model="chartForm.xField" placeholder="选择X轴字段" style="width: 100%">
               <a-option
                 v-for="col in columns"
                 :key="col"
@@ -36,7 +36,7 @@
             </a-select>
           </a-form-item>
           <a-form-item label="Y轴字段">
-            <a-select v-model="yField" placeholder="选择Y轴字段" style="width: 100%">
+            <a-select v-model="chartForm.yField" placeholder="选择Y轴字段" style="width: 100%">
               <a-option
                 v-for="col in numericColumns"
                 :key="col"
@@ -45,7 +45,7 @@
             </a-select>
           </a-form-item>
           <a-form-item label="图表标题">
-            <a-input v-model="chartTitle" placeholder="输入图表标题" />
+            <a-input v-model="chartForm.title" placeholder="输入图表标题" />
           </a-form-item>
         </a-form>
       </div>
@@ -86,9 +86,11 @@ const visible = computed({
 })
 
 const chartType = ref('bar')
-const xField = ref('')
-const yField = ref('')
-const chartTitle = ref('')
+const chartForm = ref({
+  xField: '',
+  yField: '',
+  title: ''
+})
 const chartRef = ref<HTMLElement | null>(null)
 let chartInstance: echarts.ECharts | null = null
 
@@ -109,20 +111,20 @@ const numericColumns = computed(() => {
 
 // 自动推荐字段
 watch(columns, (cols) => {
-  if (cols.length > 0 && !xField.value) {
-    xField.value = cols[0]
+  if (cols.length > 0 && !chartForm.value.xField) {
+    chartForm.value.xField = cols[0]
   }
 })
 
 watch(numericColumns, (cols) => {
-  if (cols.length > 0 && !yField.value) {
-    yField.value = cols[0]
+  if (cols.length > 0 && !chartForm.value.yField) {
+    chartForm.value.yField = cols[0]
   }
 })
 
 // 渲染图表
 const renderChart = () => {
-  if (!chartRef.value || !props.data || !xField.value || !yField.value) return
+  if (!chartRef.value || !props.data || !chartForm.value.xField || !chartForm.value.yField) return
 
   if (chartInstance) {
     chartInstance.dispose()
@@ -131,15 +133,15 @@ const renderChart = () => {
   chartInstance = echarts.init(chartRef.value)
 
   // 准备数据
-  const xData = props.data.map(item => item[xField.value])
-  const yData = props.data.map(item => item[yField.value])
+  const xData = props.data.map(item => item[chartForm.value.xField])
+  const yData = props.data.map(item => item[chartForm.value.yField])
 
   let option: echarts.EChartsOption = {}
 
   if (chartType.value === 'pie') {
     option = {
       title: {
-        text: chartTitle.value || '数据图表',
+        text: chartForm.value.title || '数据图表',
         left: 'center'
       },
       tooltip: {
@@ -155,8 +157,8 @@ const renderChart = () => {
           type: 'pie',
           radius: '50%',
           data: props.data.map(item => ({
-            name: item[xField.value],
-            value: item[yField.value]
+            name: item[chartForm.value.xField],
+            value: item[chartForm.value.yField]
           })),
           emphasis: {
             itemStyle: {
@@ -171,7 +173,7 @@ const renderChart = () => {
   } else {
     option = {
       title: {
-        text: chartTitle.value || '数据图表',
+        text: chartForm.value.title || '数据图表',
         left: 'center'
       },
       tooltip: {
@@ -214,7 +216,7 @@ const renderChart = () => {
 }
 
 // 监听变化重新渲染
-watch([chartType, xField, yField, chartTitle, () => props.data], () => {
+watch([chartType, chartForm, () => props.data], () => {
   nextTick(() => {
     renderChart()
   })
@@ -240,7 +242,7 @@ const exportChart = () => {
   })
   
   const link = document.createElement('a')
-  link.download = `${chartTitle.value || 'chart'}.png`
+  link.download = `${chartForm.value.title || 'chart'}.png`
   link.href = url
   link.click()
 }
