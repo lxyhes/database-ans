@@ -655,11 +655,23 @@ onMounted(() => {
 .nl2sql-page {
   padding: 20px;
   height: calc(100vh - 100px);
+  overflow: hidden;
+
+  :deep(.el-row) {
+    height: 100%;
+    margin: 0 !important;
+  }
+
+  :deep(.el-col) {
+    height: 100%;
+    padding: 0 10px !important;
+  }
 
   .query-card {
     height: 100%;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 
     :deep(.el-card__body) {
       flex: 1;
@@ -908,7 +920,14 @@ onMounted(() => {
   .tips-card,
   .quick-actions,
   .template-card {
-    margin-bottom: 20px;
+    margin-bottom: 16px;
+    max-height: calc(50vh - 60px);
+    overflow-y: auto;
+
+    :deep(.el-card__body) {
+      max-height: calc(50vh - 110px);
+      overflow-y: auto;
+    }
 
     .template-header {
       display: flex;

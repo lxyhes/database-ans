@@ -5,15 +5,25 @@
     
     <el-container>
       <!-- 侧边栏 -->
-      <el-aside width="220px" class="sidebar">
+      <el-aside :width="isCollapse ? '64px' : '220px'" class="sidebar">
         <div class="logo">
           <el-icon size="32" color="#409EFF"><DataAnalysis /></el-icon>
-          <span class="logo-text">数据分析助手</span>
+          <span v-if="!isCollapse" class="logo-text">数据分析助手</span>
+        </div>
+        
+        <!-- 收起/展开按钮 -->
+        <div class="collapse-btn" @click="toggleSidebar">
+          <el-icon size="18">
+            <Fold v-if="!isCollapse" />
+            <Expand v-else />
+          </el-icon>
         </div>
         
         <el-menu
           :default-active="$route.path"
           router
+          :collapse="isCollapse"
+          :collapse-transition="true"
           class="sidebar-menu"
           background-color="#304156"
           text-color="#bfcbd9"
@@ -133,14 +143,21 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
-import { Connection, DataLine, Coin, Share, CircleCheck, Lock, Document, MagicStick, TrendCharts, Reading } from '@element-plus/icons-vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { Connection, DataLine, Coin, Share, CircleCheck, Lock, Document, MagicStick, TrendCharts, Reading, Fold, Expand } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import Breadcrumb from './components/Breadcrumb.vue'
 import BackendStatusBar from './components/BackendStatusBar.vue'
 import { useBackendStatus } from './composables/useBackendStatus'
 
 const { startMonitoring, stopMonitoring, checkStatus } = useBackendStatus()
+
+// 侧边栏收起状态
+const isCollapse = ref(false)
+
+const toggleSidebar = () => {
+  isCollapse.value = !isCollapse.value
+}
 
 onMounted(() => {
   startMonitoring(30000)
@@ -175,6 +192,24 @@ const checkConnection = async () => {
 .sidebar {
   background-color: #304156;
   color: #fff;
+  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: width;
+
+  .collapse-btn {
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-bottom: 1px solid #1f2d3d;
+    color: #bfcbd9;
+    transition: background-color 0.2s, color 0.2s;
+
+    &:hover {
+      background-color: #263445;
+      color: #409eff;
+    }
+  }
 }
 
 .logo {
@@ -184,6 +219,8 @@ const checkConnection = async () => {
   justify-content: center;
   padding: 0 20px;
   border-bottom: 1px solid #1f2d3d;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .logo-text {
@@ -191,6 +228,7 @@ const checkConnection = async () => {
   font-size: 18px;
   font-weight: 600;
   color: #fff;
+  white-space: nowrap;
 }
 
 .sidebar-menu {
