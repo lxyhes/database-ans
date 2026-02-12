@@ -1,54 +1,53 @@
 <template>
-  <el-dialog
-    v-model="visible"
+  <a-modal
+    v-model:visible="visible"
     title="生成图表"
     width="800px"
-    destroy-on-close
+    :mask-closable="false"
+    @cancel="visible = false"
   >
     <div class="chart-generator">
       <!-- 图表类型选择 -->
       <div class="chart-type-selector">
         <span class="label">选择图表类型：</span>
-        <el-radio-group v-model="chartType">
-          <el-radio-button label="bar">
-            <el-icon><Histogram /></el-icon> 柱状图
-          </el-radio-button>
-          <el-radio-button label="line">
-            <el-icon><TrendCharts /></el-icon> 折线图
-          </el-radio-button>
-          <el-radio-button label="pie">
-            <el-icon><PieChart /></el-icon> 饼图
-          </el-radio-button>
-        </el-radio-group>
+        <a-radio-group v-model="chartType" type="button">
+          <a-radio value="bar">
+            <icon-bar-chart /> 柱状图
+          </a-radio>
+          <a-radio value="line">
+            <icon-dashboard /> 折线图
+          </a-radio>
+          <a-radio value="pie">
+            <icon-tags /> 饼图
+          </a-radio>
+        </a-radio-group>
       </div>
 
       <!-- 字段选择 -->
       <div class="field-selector">
-        <el-form label-width="80px">
-          <el-form-item label="X轴字段">
-            <el-select v-model="xField" placeholder="选择X轴字段" style="width: 100%">
-              <el-option
+        <a-form layout="vertical">
+          <a-form-item label="X轴字段">
+            <a-select v-model="xField" placeholder="选择X轴字段" style="width: 100%">
+              <a-option
                 v-for="col in columns"
                 :key="col"
-                :label="col"
                 :value="col"
-              />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="Y轴字段">
-            <el-select v-model="yField" placeholder="选择Y轴字段" style="width: 100%">
-              <el-option
+              >{{ col }}</a-option>
+            </a-select>
+          </a-form-item>
+          <a-form-item label="Y轴字段">
+            <a-select v-model="yField" placeholder="选择Y轴字段" style="width: 100%">
+              <a-option
                 v-for="col in numericColumns"
                 :key="col"
-                :label="col"
                 :value="col"
-              />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="图表标题">
-            <el-input v-model="chartTitle" placeholder="输入图表标题" />
-          </el-form-item>
-        </el-form>
+              >{{ col }}</a-option>
+            </a-select>
+          </a-form-item>
+          <a-form-item label="图表标题">
+            <a-input v-model="chartTitle" placeholder="输入图表标题" />
+          </a-form-item>
+        </a-form>
       </div>
 
       <!-- 图表预览 -->
@@ -58,17 +57,20 @@
     </div>
 
     <template #footer>
-      <el-button @click="visible = false">关闭</el-button>
-      <el-button type="primary" @click="exportChart">
-        <el-icon><Download /></el-icon> 导出图片
-      </el-button>
+      <a-space>
+        <a-button @click="visible = false">关闭</a-button>
+        <a-button type="primary" @click="exportChart">
+          <template #icon><icon-download /></template>
+          导出图片
+        </a-button>
+      </a-space>
     </template>
-  </el-dialog>
+  </a-modal>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
-import { Histogram, TrendCharts, PieChart, Download } from '@element-plus/icons-vue'
+import { IconBarChart, IconDashboard, IconTags, IconDownload } from '@arco-design/web-vue/es/icon'
 import * as echarts from 'echarts'
 
 const props = defineProps<{
@@ -191,9 +193,18 @@ const renderChart = () => {
           type: chartType.value,
           smooth: chartType.value === 'line',
           itemStyle: {
-            color: '#409eff'
+            color: '#165dff'
           },
-          areaStyle: chartType.value === 'line' ? {} : undefined
+          areaStyle: chartType.value === 'line' ? {
+            color: {
+              type: 'linear',
+              x: 0, y: 0, x2: 0, y2: 1,
+              colorStops: [
+                { offset: 0, color: 'rgba(22, 93, 255, 0.3)' },
+                { offset: 1, color: 'rgba(22, 93, 255, 0.05)' }
+              ]
+            }
+          } : undefined
         }
       ]
     }
@@ -250,14 +261,14 @@ onMounted(() => {
     
     .label {
       margin-right: 12px;
-      color: #606266;
+      color: var(--color-text-2);
     }
   }
 
   .field-selector {
     margin-bottom: 20px;
     padding: 16px;
-    background: #f5f7fa;
+    background: var(--color-fill-2);
     border-radius: 8px;
   }
 
@@ -265,7 +276,7 @@ onMounted(() => {
     .chart-container {
       width: 100%;
       height: 400px;
-      border: 1px solid #ebeef5;
+      border: 1px solid var(--color-neutral-3);
       border-radius: 8px;
     }
   }

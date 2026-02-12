@@ -1,151 +1,164 @@
 <template>
   <div class="query-page">
-    <el-row :gutter="20">
+    <a-row :gutter="20">
       <!-- 左侧：数据库结构 -->
-      <el-col :span="6">
-        <el-card class="schema-card" shadow="hover">
-          <template #header>
+      <a-col :span="6">
+        <a-card class="schema-card" hoverable>
+          <template #title>
             <div class="card-header">
               <span>数据库结构</span>
-              <el-button type="primary" :icon="Refresh" circle size="small" @click="loadTables" />
+              <a-button type="primary" shape="circle" size="small" @click="loadTables">
+                <template #icon><icon-refresh /></template>
+              </a-button>
             </div>
           </template>
           
-          <el-tree
+          <a-tree
             :data="tableTree"
-            :props="{ label: 'name', children: 'children' }"
-            @node-click="handleNodeClick"
-            v-loading="loadingTables"
+            :field-names="{ key: 'name', title: 'name', children: 'children' }"
+            @select="handleNodeSelect"
+            :loading="loadingTables"
           >
-            <template #default="{ node, data }">
-              <span class="tree-node">
-                <el-icon v-if="data.type === 'table'"><Grid /></el-icon>
-                <el-icon v-else><Document /></el-icon>
-                <span>{{ node.label }}</span>
-              </span>
+            <template #icon="{ node }">
+              <icon-apps v-if="node.type === 'table'" />
+              <icon-file v-else />
             </template>
-          </el-tree>
-        </el-card>
-      </el-col>
+          </a-tree>
+        </a-card>
+      </a-col>
 
       <!-- 右侧：查询区域 -->
-      <el-col :span="18">
-        <el-card shadow="hover" class="query-card">
-          <template #header>
+      <a-col :span="18">
+        <a-card hoverable class="query-card">
+          <template #title>
             <div class="card-header">
               <span>自然语言查询</span>
-              <el-tag type="success">AI 驱动</el-tag>
+              <a-tag color="green">AI 驱动</a-tag>
             </div>
           </template>
 
           <div class="query-input-section">
-            <el-input
+            <a-textarea
               v-model="queryText"
-              type="textarea"
               :rows="4"
-              placeholder="用自然语言描述你的查询需求，例如：&#10;1. 显示总销售额&#10;2. 查询每个地区的订单数量&#10;3. 找出销售额最高的前10个客户"
+              placeholder="用自然语言描述你的查询需求，例如：
+1. 显示总销售额
+2. 查询每个地区的订单数量
+3. 找出销售额最高的前10个客户"
               class="query-input"
+              allow-clear
             />
             
             <div class="query-actions">
-              <el-button 
+              <a-button 
                 type="primary" 
-                :icon="Search" 
                 :loading="loading"
                 @click="executeQuery"
               >
+                <template #icon><icon-search /></template>
                 执行查询
-              </el-button>
-              <el-button 
-                type="success" 
-                :icon="DataAnalysis"
+              </a-button>
+              <a-button 
+                type="primary" 
+                status="success"
                 :loading="analyzing"
                 @click="analyzeData"
               >
+                <template #icon><icon-bar-chart /></template>
                 数据分析
-              </el-button>
-              <el-button 
-                type="warning" 
-                :icon="Star"
+              </a-button>
+              <a-button 
+                type="outline" 
+                status="warning"
                 @click="saveCurrentQuery"
               >
+                <template #icon><icon-star /></template>
                 收藏查询
-              </el-button>
+              </a-button>
             </div>
           </div>
-        </el-card>
+        </a-card>
 
         <!-- 查询结果 -->
-        <el-card v-if="queryResult" shadow="hover" class="result-card">
-          <template #header>
+        <a-card v-if="queryResult" hoverable class="result-card">
+          <template #title>
             <div class="card-header">
               <span>查询结果</span>
-              <div>
-                <el-tag v-if="queryResult.sql" type="info" class="sql-tag">{{ queryResult.sql }}</el-tag>
-                <el-button type="primary" :icon="Download" size="small" @click="exportResult">
+              <div class="result-actions">
+                <a-tag v-if="queryResult.sql" color="arcoblue" class="sql-tag">{{ queryResult.sql }}</a-tag>
+                <a-button type="primary" size="small" @click="exportResult">
+                  <template #icon><icon-download /></template>
                   导出
-                </el-button>
+                </a-button>
               </div>
             </div>
           </template>
 
           <!-- 数据表格 -->
-          <el-table
+          <a-table
             v-if="queryResult.data && queryResult.data.length > 0"
             :data="queryResult.data"
-            border
-            stripe
-            style="width: 100%"
-            max-height="400"
+            :bordered="true"
+            :stripe="true"
+            :scroll="{ y: 400 }"
+            page-position="bottom"
+            :pagination="{ pageSize: 10 }"
           >
-            <el-table-column
+            <a-table-column
               v-for="(key, index) in Object.keys(queryResult.data[0])"
               :key="index"
-              :prop="key"
-              :label="key"
-              min-width="120"
+              :title="key"
+              :data-index="key"
+              :width="120"
             />
-          </el-table>
+          </a-table>
 
           <!-- 分析结果 -->
           <div v-else-if="queryResult.analysis" class="analysis-result">
-            <el-alert
-              :title="'分析完成'"
-              type="success"
-              :closable="false"
-            />
+            <a-alert type="success" :show-icon="true">
+              <template #title>分析完成</template>
+            </a-alert>
             <div class="analysis-content" v-html="formatAnalysis(queryResult.analysis)"></div>
           </div>
 
           <!-- 空结果 -->
-          <el-empty v-else description="暂无数据" />
-        </el-card>
+          <a-empty v-else description="暂无数据" />
+        </a-card>
 
         <!-- 查询建议 -->
-        <el-card shadow="hover" class="suggestions-card">
-          <template #header>
+        <a-card hoverable class="suggestions-card">
+          <template #title>
             <span>查询示例</span>
           </template>
           <div class="suggestions-list">
-            <el-tag
+            <a-tag
               v-for="(suggestion, index) in querySuggestions"
               :key="index"
               class="suggestion-tag"
+              color="arcoblue"
               @click="useSuggestion(suggestion)"
             >
               {{ suggestion }}
-            </el-tag>
+            </a-tag>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </a-card>
+      </a-col>
+    </a-row>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { Search, DataAnalysis, Star, Refresh, Grid, Document, Download } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { ref, onMounted, h } from 'vue'
+import { 
+  IconSearch, 
+  IconBarChart, 
+  IconStar, 
+  IconRefresh, 
+  IconApps, 
+  IconFile, 
+  IconDownload 
+} from '@arco-design/web-vue/es/icon'
+import { Message } from '@arco-design/web-vue'
 
 const queryText = ref('')
 const loading = ref(false)
@@ -175,29 +188,29 @@ const loadTables = async () => {
       })) || []
     }
   } catch (error) {
-    ElMessage.error('加载表结构失败')
+    Message.error('加载表结构失败')
   } finally {
     loadingTables.value = false
   }
 }
 
-const handleNodeClick = async (data: any) => {
-  if (data.type === 'table') {
+const handleNodeSelect = async (selectedKeys: string[], data: any) => {
+  const node = data.node
+  if (node.type === 'table') {
     try {
-      const result = await window.electronAPI.getTableSchema(data.name)
+      const result = await window.electronAPI.getTableSchema(node.name)
       if (result.success) {
-        // 可以在这里显示表结构详情
-        ElMessage.success(`已选择表: ${data.name}`)
+        Message.success(`已选择表: ${node.name}`)
       }
     } catch (error) {
-      ElMessage.error('获取表结构失败')
+      Message.error('获取表结构失败')
     }
   }
 }
 
 const executeQuery = async () => {
   if (!queryText.value.trim()) {
-    ElMessage.warning('请输入查询内容')
+    Message.warning('请输入查询内容')
     return
   }
 
@@ -206,12 +219,12 @@ const executeQuery = async () => {
     const result = await window.electronAPI.queryNaturalLanguage(queryText.value)
     if (result.success) {
       queryResult.value = result.data
-      ElMessage.success('查询成功')
+      Message.success('查询成功')
     } else {
-      ElMessage.error(result.message || '查询失败')
+      Message.error(result.message || '查询失败')
     }
   } catch (error) {
-    ElMessage.error('查询执行失败')
+    Message.error('查询执行失败')
   } finally {
     loading.value = false
   }
@@ -219,7 +232,7 @@ const executeQuery = async () => {
 
 const analyzeData = async () => {
   if (!queryText.value.trim()) {
-    ElMessage.warning('请输入分析内容')
+    Message.warning('请输入分析内容')
     return
   }
 
@@ -228,12 +241,12 @@ const analyzeData = async () => {
     const result = await window.electronAPI.analyzeData(queryText.value)
     if (result.success) {
       queryResult.value = result.data
-      ElMessage.success('分析完成')
+      Message.success('分析完成')
     } else {
-      ElMessage.error(result.message || '分析失败')
+      Message.error(result.message || '分析失败')
     }
   } catch (error) {
-    ElMessage.error('分析执行失败')
+    Message.error('分析执行失败')
   } finally {
     analyzing.value = false
   }
@@ -241,7 +254,7 @@ const analyzeData = async () => {
 
 const saveCurrentQuery = async () => {
   if (!queryText.value.trim()) {
-    ElMessage.warning('没有可保存的查询')
+    Message.warning('没有可保存的查询')
     return
   }
 
@@ -252,10 +265,10 @@ const saveCurrentQuery = async () => {
       queryType: 'natural_language'
     })
     if (result.success) {
-      ElMessage.success('查询已收藏')
+      Message.success('查询已收藏')
     }
   } catch (error) {
-    ElMessage.error('保存失败')
+    Message.error('保存失败')
   }
 }
 
@@ -268,8 +281,7 @@ const formatAnalysis = (analysis: string) => {
 }
 
 const exportResult = () => {
-  // 导出功能实现
-  ElMessage.info('导出功能开发中')
+  Message.info('导出功能开发中')
 }
 
 onMounted(() => {
@@ -319,8 +331,13 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
+.result-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .sql-tag {
-  margin-right: 12px;
   max-width: 400px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -334,7 +351,7 @@ onMounted(() => {
 .analysis-content {
   margin-top: 16px;
   line-height: 1.8;
-  color: #606266;
+  color: var(--color-text-2);
 }
 
 .suggestions-card {

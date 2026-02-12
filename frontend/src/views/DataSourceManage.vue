@@ -1,29 +1,29 @@
 <template>
   <div class="datasource-manage">
-    <el-card class="page-header">
-      <template #header>
+    <a-card class="page-header" :bordered="false">
+      <template #title>
         <div class="card-header">
           <span class="title">数据源管理</span>
-          <el-button type="primary" @click="handleAdd">
-            <el-icon><Plus /></el-icon>
+          <a-button type="primary" @click="handleAdd">
+            <template #icon><icon-plus /></template>
             添加数据源
-          </el-button>
+          </a-button>
         </div>
       </template>
       
-      <el-alert
+      <a-alert
         v-if="dataSources.length === 0"
-        title="暂无数据源"
-        description="请先添加一个数据源以开始使用 NL2SQL 功能"
         type="info"
-        :closable="false"
-        show-icon
-      />
-    </el-card>
+        :show-icon="true"
+      >
+        <template #title>暂无数据源</template>
+        <template #content>请先添加一个数据源以开始使用 NL2SQL 功能</template>
+      </a-alert>
+    </a-card>
 
     <!-- 数据源列表 -->
-    <el-row :gutter="20" class="datasource-list">
-      <el-col 
+    <a-row :gutter="20" class="datasource-list">
+      <a-col 
         v-for="ds in dataSources" 
         :key="ds.id" 
         :xs="24" 
@@ -31,50 +31,53 @@
         :md="8" 
         :lg="8"
       >
-        <el-card 
+        <a-card 
           class="datasource-card" 
           :class="{ 'is-default': ds.isDefault, 'is-disconnected': ds.connectionStatus === 'disconnected' }"
+          hoverable
         >
           <div class="datasource-header">
             <div class="datasource-icon">
               <div class="status-indicator" :class="ds.connectionStatus === 'connected' ? 'connected' : 'disconnected'"></div>
-              <el-icon :size="32">
-                <Coin v-if="ds.type === 'mysql'" />
-                <DataLine v-else-if="ds.type === 'postgresql'" />
-                <Collection v-else />
-              </el-icon>
+              <icon-storage v-if="ds.type === 'mysql'" :size="32" :style="{ color: '#165DFF' }" />
+              <icon-storage v-else-if="ds.type === 'postgresql'" :size="32" :style="{ color: '#165DFF' }" />
+              <icon-storage v-else :size="32" :style="{ color: '#165DFF' }" />
             </div>
             <div class="datasource-info">
               <h3 class="datasource-name">
                 {{ ds.name }}
-                <el-tag v-if="ds.isDefault" type="success" size="small">默认</el-tag>
+                <a-tag v-if="ds.isDefault" color="green" size="small">默认</a-tag>
               </h3>
               <p class="datasource-type">{{ getDatabaseTypeName(ds.type) }}</p>
             </div>
-            <el-dropdown @command="handleCommand($event, ds)">
-              <el-button type="primary" text>
-                <el-icon><More /></el-icon>
-              </el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="edit">
-                    <el-icon><Edit /></el-icon> 编辑
-                  </el-dropdown-item>
-                  <el-dropdown-item command="test">
-                    <el-icon><Connection /></el-icon> 测试连接
-                  </el-dropdown-item>
-                  <el-dropdown-item command="refreshStatus">
-                    <el-icon><Refresh /></el-icon> 刷新状态
-                  </el-dropdown-item>
-                  <el-dropdown-item v-if="!ds.isDefault" command="setDefault">
-                    <el-icon><Star /></el-icon> 设为默认
-                  </el-dropdown-item>
-                  <el-dropdown-item divided command="delete" type="danger">
-                    <el-icon><Delete /></el-icon> 删除
-                  </el-dropdown-item>
-                </el-dropdown-menu>
+            <a-dropdown @select="(key) => handleCommand(key, ds)">
+              <a-button type="text">
+                <template #icon><icon-more /></template>
+              </a-button>
+              <template #content>
+                <a-doption value="edit">
+                  <template #icon><icon-edit /></template>
+                  编辑
+                </a-doption>
+                <a-doption value="test">
+                  <template #icon><icon-link /></template>
+                  测试连接
+                </a-doption>
+                <a-doption value="refreshStatus">
+                  <template #icon><icon-refresh /></template>
+                  刷新状态
+                </a-doption>
+                <a-doption v-if="!ds.isDefault" value="setDefault">
+                  <template #icon><icon-star /></template>
+                  设为默认
+                </a-doption>
+                <a-divider style="margin: 4px 0" />
+                <a-doption value="delete" style="color: #f53f3f">
+                  <template #icon><icon-delete /></template>
+                  删除
+                </a-doption>
               </template>
-            </el-dropdown>
+            </a-dropdown>
           </div>
 
           <div class="datasource-body">
@@ -92,31 +95,30 @@
             </div>
             <div class="info-item">
               <span class="label">状态:</span>
-              <el-tag 
-                :type="ds.connectionStatus === 'connected' ? 'success' : 'danger'"
+              <a-tag 
+                :color="ds.connectionStatus === 'connected' ? 'green' : 'red'"
                 size="small"
               >
                 {{ ds.connectionStatus === 'connected' ? '已连接' : '未连接' }}
-              </el-tag>
+              </a-tag>
             </div>
           </div>
 
           <div class="datasource-footer">
             <span class="update-time">更新于 {{ formatDate(ds.updatedAt) }}</span>
-            <el-button 
+            <a-button 
               v-if="ds.connectionStatus === 'connected'"
-              type="primary" 
-              link 
+              type="text" 
               size="small"
               @click="openTableDrawer(ds)"
             >
-              <el-icon><Grid /></el-icon>
+              <template #icon><icon-apps /></template>
               查看表结构
-            </el-button>
+            </a-button>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </a-card>
+      </a-col>
+    </a-row>
 
     <!-- 表结构抽屉组件 -->
     <TableStructureDrawer
@@ -126,103 +128,109 @@
     />
 
     <!-- 添加/编辑对话框 -->
-    <el-dialog
-      v-model="dialogVisible"
+    <a-modal
+      v-model:visible="dialogVisible"
       :title="isEdit ? '编辑数据源' : '添加数据源'"
       width="600px"
-      destroy-on-close
+      @cancel="dialogVisible = false"
+      @before-ok="handleBeforeOk"
     >
-      <el-form
+      <a-form
         ref="formRef"
         :model="form"
         :rules="rules"
-        label-width="100px"
+        layout="vertical"
         class="datasource-form"
       >
-        <el-form-item label="数据源名称" prop="name">
-          <el-input v-model="form.name" placeholder="请输入数据源名称" />
-        </el-form-item>
+        <a-form-item label="数据源名称" field="name">
+          <a-input v-model="form.name" placeholder="请输入数据源名称" />
+        </a-form-item>
 
-        <el-form-item label="数据库类型" prop="type">
-          <el-select v-model="form.type" placeholder="请选择数据库类型" style="width: 100%">
-            <el-option label="MySQL" value="mysql" />
-            <el-option label="PostgreSQL" value="postgresql" />
-            <el-option label="H2 Database" value="h2" />
-          </el-select>
-        </el-form-item>
+        <a-form-item label="数据库类型" field="type">
+          <a-select v-model="form.type" placeholder="请选择数据库类型">
+            <a-option value="mysql">MySQL</a-option>
+            <a-option value="postgresql">PostgreSQL</a-option>
+            <a-option value="h2">H2 Database</a-option>
+          </a-select>
+        </a-form-item>
 
-        <el-row :gutter="20">
-          <el-col :span="16">
-            <el-form-item label="主机地址" prop="host">
-              <el-input v-model="form.host" placeholder="localhost" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="端口" prop="port">
-              <el-input 
-                v-model.number="form.port" 
+        <a-row :gutter="20">
+          <a-col :span="16">
+            <a-form-item label="主机地址" field="host">
+              <a-input v-model="form.host" placeholder="localhost" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="8">
+            <a-form-item label="端口" field="port">
+              <a-input-number 
+                v-model="form.port" 
                 placeholder="3306"
-                type="number"
                 :min="1"
                 :max="65535"
+                style="width: 100%"
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
+            </a-form-item>
+          </a-col>
+        </a-row>
 
-        <el-form-item label="数据库名" prop="database">
-          <el-input v-model="form.database" placeholder="请输入数据库名称" />
-        </el-form-item>
+        <a-form-item label="数据库名" field="database">
+          <a-input v-model="form.database" placeholder="请输入数据库名称" />
+        </a-form-item>
 
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="form.username" placeholder="请输入用户名" />
-        </el-form-item>
+        <a-form-item label="用户名" field="username">
+          <a-input v-model="form.username" placeholder="请输入用户名" />
+        </a-form-item>
 
-        <el-form-item label="密码" prop="password">
-          <el-input 
+        <a-form-item label="密码" field="password">
+          <a-input-password 
             v-model="form.password" 
-            type="password" 
             placeholder="请输入密码"
-            show-password
           />
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item label="描述">
-          <el-input 
+        <a-form-item label="描述" field="description">
+          <a-textarea 
             v-model="form.description" 
-            type="textarea" 
             :rows="2"
             placeholder="请输入数据源描述（可选）"
           />
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item label="设为默认">
-          <el-switch v-model="form.isDefault" />
-        </el-form-item>
-      </el-form>
+        <a-form-item label="设为默认" field="isDefault">
+          <a-switch v-model="form.isDefault" />
+        </a-form-item>
+      </a-form>
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="info" @click="handleTestConnection" :loading="testing">
+          <a-button @click="dialogVisible = false">取消</a-button>
+          <a-button @click="handleTestConnection" :loading="testing">
             测试连接
-          </el-button>
-          <el-button type="primary" @click="handleSubmit" :loading="submitting">
+          </a-button>
+          <a-button type="primary" @click="handleSubmit" :loading="submitting">
             {{ isEdit ? '保存' : '创建' }}
-          </el-button>
+          </a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, watch, computed } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import {
-  Plus, Coin, DataLine, Collection, More,
-  Edit, Delete, Connection, Star, Grid, Refresh
-} from '@element-plus/icons-vue'
+import { 
+  IconPlus, 
+  IconStorage, 
+  IconMore,
+  IconEdit, 
+  IconDelete, 
+  IconLink, 
+  IconStar, 
+  IconApps, 
+  IconRefresh 
+} from '@arco-design/web-vue/es/icon'
+import { Message, Modal } from '@arco-design/web-vue'
+import type { FormInstance } from '@arco-design/web-vue'
 import {
   getDataSources,
   createDataSource,
@@ -234,26 +242,26 @@ import {
 } from '@/api/datasource'
 import TableStructureDrawer from '@/components/TableStructureDrawer.vue'
 
-const dataSources = ref([])
+const dataSources = ref<any[]>([])
 const dialogVisible = ref(false)
 const isEdit = ref(false)
 const submitting = ref(false)
 const testing = ref(false)
-const formRef = ref(null)
+const formRef = ref<FormInstance>()
 const databaseTypes = ref({})
 
 // 表结构抽屉相关
 const tableDrawerVisible = ref(false)
-const currentDataSource = ref(null)
+const currentDataSource = ref<any>(null)
 
-const defaultPorts = {
+const defaultPorts: Record<string, number> = {
   mysql: 3306,
   postgresql: 5432,
   h2: 0
 }
 
 const form = reactive({
-  id: null,
+  id: null as number | null,
   name: '',
   type: 'mysql',
   host: 'localhost',
@@ -266,13 +274,13 @@ const form = reactive({
 })
 
 const rules = {
-  name: [{ required: true, message: '请输入数据源名称', trigger: 'blur' }],
-  type: [{ required: true, message: '请选择数据库类型', trigger: 'change' }],
-  host: [{ required: true, message: '请输入主机地址', trigger: 'blur' }],
-  port: [{ required: true, message: '请输入端口', trigger: 'blur' }],
-  database: [{ required: true, message: '请输入数据库名', trigger: 'blur' }],
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
+  name: [{ required: true, message: '请输入数据源名称' }],
+  type: [{ required: true, message: '请选择数据库类型' }],
+  host: [{ required: true, message: '请输入主机地址' }],
+  port: [{ required: true, message: '请输入端口' }],
+  database: [{ required: true, message: '请输入数据库名' }],
+  username: [{ required: true, message: '请输入用户名' }],
+  password: [{ required: true, message: '请输入密码' }]
 }
 
 // 监听数据库类型变化，自动设置默认端口
@@ -289,7 +297,7 @@ const loadDataSources = async () => {
       dataSources.value = res.data
     }
   } catch (error) {
-    ElMessage.error('加载数据源失败')
+    Message.error('加载数据源失败')
   }
 }
 
@@ -304,8 +312,8 @@ const loadDatabaseTypes = async () => {
   }
 }
 
-const getDatabaseTypeName = (type) => {
-  const names = {
+const getDatabaseTypeName = (type: string) => {
+  const names: Record<string, string> = {
     mysql: 'MySQL',
     postgresql: 'PostgreSQL',
     h2: 'H2 Database'
@@ -313,7 +321,7 @@ const getDatabaseTypeName = (type) => {
   return names[type] || type
 }
 
-const formatDate = (dateStr) => {
+const formatDate = (dateStr: string) => {
   if (!dateStr) return '-'
   const date = new Date(dateStr)
   return date.toLocaleString('zh-CN')
@@ -325,94 +333,102 @@ const handleAdd = () => {
   dialogVisible.value = true
 }
 
-const handleEdit = (row) => {
+const handleEdit = (row: any) => {
   isEdit.value = true
   Object.assign(form, row)
   dialogVisible.value = true
 }
 
-const handleDelete = async (row) => {
+const handleDelete = async (row: any) => {
   try {
-    await ElMessageBox.confirm(
-      `确定要删除数据源 "${row.name}" 吗？`,
-      '确认删除',
-      { type: 'warning' }
-    )
+    await new Promise((resolve, reject) => {
+      Modal.confirm({
+        title: '确认删除',
+        content: `确定要删除数据源 "${row.name}" 吗？`,
+        onOk: () => resolve(true),
+        onCancel: () => reject('cancel')
+      })
+    })
     const res = await deleteDataSource(row.id)
     if (res.success) {
-      ElMessage.success('删除成功')
+      Message.success('删除成功')
       loadDataSources()
     } else {
-      ElMessage.error(res.message || '删除失败')
+      Message.error(res.message || '删除失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      Message.error('删除失败')
     }
   }
 }
 
 const handleTestConnection = async () => {
-  const valid = await formRef.value.validate().catch(() => false)
+  const valid = await formRef.value?.validate()
   if (!valid) return
 
   testing.value = true
   try {
     const res = await testDataSourceConnection(form)
     if (res.success) {
-      ElMessage.success('连接成功')
+      Message.success('连接成功')
     } else {
-      ElMessage.error(res.message || '连接失败')
+      Message.error(res.message || '连接失败')
     }
   } catch (error) {
-    ElMessage.error('连接测试失败')
+    Message.error('连接测试失败')
   } finally {
     testing.value = false
   }
 }
 
+const handleBeforeOk = async () => {
+  const valid = await formRef.value?.validate()
+  return valid !== false
+}
+
 const handleSubmit = async () => {
-  const valid = await formRef.value.validate().catch(() => false)
+  const valid = await formRef.value?.validate()
   if (!valid) return
 
   submitting.value = true
   try {
     let res
     if (isEdit.value) {
-      res = await updateDataSource(form.id, form)
+      res = await updateDataSource(form.id!, form)
     } else {
       res = await createDataSource(form)
     }
 
     if (res.success) {
-      ElMessage.success(isEdit.value ? '保存成功' : '创建成功')
+      Message.success(isEdit.value ? '保存成功' : '创建成功')
       dialogVisible.value = false
       loadDataSources()
     } else {
-      ElMessage.error(res.message || (isEdit.value ? '保存失败' : '创建失败'))
+      Message.error(res.message || (isEdit.value ? '保存失败' : '创建失败'))
     }
   } catch (error) {
-    ElMessage.error(isEdit.value ? '保存失败' : '创建失败')
+    Message.error(isEdit.value ? '保存失败' : '创建失败')
   } finally {
     submitting.value = false
   }
 }
 
-const handleSetDefault = async (row) => {
+const handleSetDefault = async (row: any) => {
   try {
     const res = await setDefaultDataSource(row.id)
     if (res.success) {
-      ElMessage.success('已设为默认数据源')
+      Message.success('已设为默认数据源')
       loadDataSources()
     } else {
-      ElMessage.error(res.message || '设置失败')
+      Message.error(res.message || '设置失败')
     }
   } catch (error) {
-    ElMessage.error('设置失败')
+    Message.error('设置失败')
   }
 }
 
-const handleCommand = (command, row) => {
+const handleCommand = (command: string, row: any) => {
   switch (command) {
     case 'edit':
       handleEdit(row)
@@ -432,34 +448,35 @@ const handleCommand = (command, row) => {
   }
 }
 
-const handleRefreshStatus = async (row) => {
+const handleRefreshStatus = async (row: any) => {
   try {
     row.connectionStatus = 'checking'
     const res = await testDataSourceConnection(row)
     row.connectionStatus = res.success ? 'connected' : 'disconnected'
-    ElMessage.success(res.success ? '连接正常' : '连接失败')
+    Message.success(res.success ? '连接正常' : '连接失败')
   } catch (error) {
     row.connectionStatus = 'disconnected'
-    ElMessage.error('状态刷新失败')
+    Message.error('状态刷新失败')
   }
 }
 
-const handleTestSingleConnection = async (row) => {
+const handleTestSingleConnection = async (row: any) => {
   try {
     const res = await testDataSourceConnection(row)
     if (res.success) {
-      ElMessage.success('连接成功')
+      Message.success('连接成功')
       loadDataSources()
     } else {
-      ElMessage.error(res.message || '连接失败')
+      Message.error(res.message || '连接失败')
     }
   } catch (error) {
-    ElMessage.error('连接测试失败')
+    Message.error('连接测试失败')
   }
 }
 
 // 打开表结构抽屉
-const openTableDrawer = (ds) => {
+const openTableDrawer = (ds: any) => {
+  console.log('Opening table drawer for data source:', ds)
   currentDataSource.value = ds
   tableDrawerVisible.value = true
 }
@@ -513,7 +530,7 @@ onMounted(() => {
     }
 
     &.is-default {
-      border: 2px solid #67c23a;
+      border: 2px solid #00b42a;
     }
 
     &.is-disconnected {
@@ -529,12 +546,11 @@ onMounted(() => {
         width: 48px;
         height: 48px;
         border-radius: 8px;
-        background: #f0f2f5;
+        background: #f2f3f5;
         display: flex;
         align-items: center;
         justify-content: center;
         margin-right: 12px;
-        color: #409eff;
         position: relative;
 
         .status-indicator {
@@ -547,13 +563,13 @@ onMounted(() => {
           border: 2px solid #fff;
           
           &.connected {
-            background: #67c23a;
-            box-shadow: 0 0 6px #67c23a;
+            background: #00b42a;
+            box-shadow: 0 0 6px #00b42a;
           }
           
           &.disconnected {
-            background: #f56c6c;
-            box-shadow: 0 0 6px #f56c6c;
+            background: #f53f3f;
+            box-shadow: 0 0 6px #f53f3f;
           }
         }
       }
@@ -572,7 +588,7 @@ onMounted(() => {
 
         .datasource-type {
           margin: 0;
-          color: #909399;
+          color: #86909c;
           font-size: 13px;
         }
       }
@@ -583,19 +599,19 @@ onMounted(() => {
         display: flex;
         justify-content: space-between;
         padding: 8px 0;
-        border-bottom: 1px solid #ebeef5;
+        border-bottom: 1px solid #e5e6eb;
 
         &:last-child {
           border-bottom: none;
         }
 
         .label {
-          color: #606266;
+          color: #4e5969;
           font-size: 13px;
         }
 
         .value {
-          color: #303133;
+          color: #1d2129;
           font-size: 13px;
           font-weight: 500;
         }
@@ -605,10 +621,13 @@ onMounted(() => {
     .datasource-footer {
       margin-top: 16px;
       padding-top: 12px;
-      border-top: 1px solid #ebeef5;
+      border-top: 1px solid #e5e6eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
 
       .update-time {
-        color: #909399;
+        color: #86909c;
         font-size: 12px;
       }
     }

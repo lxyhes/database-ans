@@ -1,79 +1,85 @@
 <template>
   <div class="sql-optimization">
-    <el-card>
-      <template #header>
+    <a-card>
+      <template #title>
         <div class="card-header">
           <span>SQL 性能优化</span>
         </div>
       </template>
 
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-card>
-            <template #header>
-              <span>原始 SQL</span>
-              <el-button type="primary" size="small" @click="analyzeSql" :loading="analyzing" style="float: right;">
-                <el-icon><Search /></el-icon>
-                分析
-              </el-button>
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-card>
+            <template #title>
+              <div class="card-title-with-action">
+                <span>原始 SQL</span>
+                <a-button type="primary" size="small" @click="analyzeSql" :loading="analyzing">
+                  <template #icon><icon-search /></template>
+                  分析
+                </a-button>
+              </div>
             </template>
-            <el-input
+            <a-textarea
               v-model="originalSql"
-              type="textarea"
               :rows="15"
               placeholder="请输入需要分析的SQL语句"
+              allow-clear
             />
-          </el-card>
-        </el-col>
+          </a-card>
+        </a-col>
 
-        <el-col :span="12">
-          <el-card v-if="analysisResult">
-            <template #header>
-              <span>优化建议</span>
-              <div class="score-badge" :class="getGradeClass(analysisResult.grade)">
-                {{ analysisResult.score }}分
+        <a-col :span="12">
+          <a-card v-if="analysisResult">
+            <template #title>
+              <div class="card-title-with-action">
+                <span>优化建议</span>
+                <a-tag :color="getGradeColor(analysisResult.grade)" class="score-badge">
+                  {{ analysisResult.score }}分
+                </a-tag>
               </div>
             </template>
 
             <div class="suggestions-list">
-              <el-empty v-if="!analysisResult.suggestions?.length" description="暂无优化建议" />
-              <el-timeline v-else>
-                <el-timeline-item
+              <a-empty v-if="!analysisResult.suggestions?.length" description="暂无优化建议" />
+              <a-timeline v-else>
+                <a-timeline-item
                   v-for="(suggestion, index) in analysisResult.suggestions"
                   :key="index"
-                  :type="getSeverityType(suggestion.severity)"
+                  :dot-color="getSeverityColor(suggestion.severity)"
                 >
                   <h4>{{ suggestion.title }}</h4>
                   <p class="description">{{ suggestion.description }}</p>
                   <p class="solution">
-                    <el-icon><InfoFilled /></el-icon>
+                    <icon-info-circle />
                     建议：{{ suggestion.solution }}
                   </p>
-                </el-timeline-item>
-              </el-timeline>
+                </a-timeline-item>
+              </a-timeline>
             </div>
-          </el-card>
+          </a-card>
 
-          <el-card v-if="optimizedSql" style="margin-top: 20px;">
-            <template #header>
-              <span>优化后的 SQL</span>
-              <el-button type="success" size="small" @click="copyOptimizedSql" style="float: right;">
-                <el-icon><CopyDocument /></el-icon>
-                复制
-              </el-button>
+          <a-card v-if="optimizedSql" style="margin-top: 20px;">
+            <template #title>
+              <div class="card-title-with-action">
+                <span>优化后的 SQL</span>
+                <a-button type="primary" status="success" size="small" @click="copyOptimizedSql">
+                  <template #icon><icon-copy /></template>
+                  复制
+                </a-button>
+              </div>
             </template>
             <pre class="sql-code">{{ optimizedSql }}</pre>
-          </el-card>
-        </el-col>
-      </el-row>
-    </el-card>
+          </a-card>
+        </a-col>
+      </a-row>
+    </a-card>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Search, InfoFilled, CopyDocument } from '@element-plus/icons-vue'
+import { Message } from '@arco-design/web-vue'
+import { IconSearch, IconInfoCircle, IconCopy } from '@arco-design/web-vue/es/icon'
 import request from '@/utils/request'
 
 const originalSql = ref('')
@@ -83,7 +89,7 @@ const analyzing = ref(false)
 
 const analyzeSql = async () => {
   if (!originalSql.value.trim()) {
-    ElMessage.warning('请输入SQL语句')
+    Message.warning('请输入SQL语句')
     return
   }
 
@@ -100,7 +106,7 @@ const analyzeSql = async () => {
     })
     optimizedSql.value = optimizeRes.data.optimized
   } catch (error) {
-    ElMessage.error('分析失败')
+    Message.error('分析失败')
   } finally {
     analyzing.value = false
   }
@@ -108,27 +114,27 @@ const analyzeSql = async () => {
 
 const copyOptimizedSql = () => {
   navigator.clipboard.writeText(optimizedSql.value)
-  ElMessage.success('已复制到剪贴板')
+  Message.success('已复制到剪贴板')
 }
 
-const getGradeClass = (grade) => {
-  const classes = {
-    'A': 'grade-a',
-    'B': 'grade-b',
-    'C': 'grade-c',
-    'D': 'grade-d'
+const getGradeColor = (grade) => {
+  const colors = {
+    'A': 'green',
+    'B': 'orange',
+    'C': 'red',
+    'D': 'gray'
   }
-  return classes[grade] || ''
+  return colors[grade] || 'gray'
 }
 
-const getSeverityType = (severity) => {
-  const types = {
-    'critical': 'danger',
-    'high': 'warning',
-    'medium': 'primary',
-    'low': 'info'
+const getSeverityColor = (severity) => {
+  const colors = {
+    'critical': 'red',
+    'high': 'orange',
+    'medium': 'arcoblue',
+    'low': 'gray'
   }
-  return types[severity] || 'info'
+  return colors[severity] || 'gray'
 }
 </script>
 
@@ -142,25 +148,14 @@ const getSeverityType = (severity) => {
     align-items: center;
   }
 
-  .score-badge {
-    float: right;
-    padding: 5px 15px;
-    border-radius: 15px;
-    color: white;
-    font-weight: bold;
+  .card-title-with-action {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
 
-    &.grade-a {
-      background: #67c23a;
-    }
-    &.grade-b {
-      background: #e6a23c;
-    }
-    &.grade-c {
-      background: #f56c6c;
-    }
-    &.grade-d {
-      background: #909399;
-    }
+  .score-badge {
+    font-weight: bold;
   }
 
   .suggestions-list {
@@ -169,24 +164,24 @@ const getSeverityType = (severity) => {
 
     h4 {
       margin: 0 0 8px 0;
-      color: #303133;
+      color: var(--color-text-1);
     }
 
     .description {
       margin: 0 0 8px 0;
-      color: #606266;
+      color: var(--color-text-2);
       font-size: 14px;
     }
 
     .solution {
       margin: 0;
-      color: #409eff;
+      color: rgb(var(--primary-6));
       font-size: 13px;
     }
   }
 
   .sql-code {
-    background: #f5f7fa;
+    background: var(--color-fill-2);
     padding: 15px;
     border-radius: 4px;
     overflow-x: auto;

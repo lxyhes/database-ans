@@ -1,38 +1,38 @@
 <template>
-  <el-drawer
-    v-model="visible"
+  <a-drawer
+    v-model:visible="visible"
     :title="title"
-    size="600px"
-    destroy-on-close
-    @open="handleOpen"
+    width="600px"
+    unmountOnClose
+    @after-open="handleOpen"
   >
     <div class="table-drawer-content">
       <div class="drawer-header">
-        <el-input
+        <a-input
           v-model="searchKeyword"
           placeholder="搜索表名"
-          clearable
+          allow-clear
           style="width: 250px"
         >
           <template #prefix>
-            <el-icon><Search /></el-icon>
+            <icon-search />
           </template>
-        </el-input>
+        </a-input>
         <div class="header-actions">
           <span class="table-count">共 {{ filteredTables.length }} 个表</span>
-          <el-button 
+          <a-button 
             type="primary" 
             @click="refreshTables"
             :loading="loading"
           >
-            <el-icon><Refresh /></el-icon>
+            <template #icon><icon-refresh /></template>
             刷新
-          </el-button>
+          </a-button>
         </div>
       </div>
 
-      <div class="table-list-container" v-loading="loading">
-        <el-empty v-if="filteredTables.length === 0" description="暂无表数据" />
+      <div class="table-list-container">
+        <a-empty v-if="filteredTables.length === 0" description="暂无表数据" />
         
         <!-- 使用虚拟滚动列表 -->
         <div v-else class="virtual-list-container" ref="listContainerRef">
@@ -45,12 +45,12 @@
             <!-- 表头 -->
             <div class="table-header" @click="toggleTable(table.name)">
               <div class="table-header-main">
-                <el-icon class="expand-icon"><ArrowRight /></el-icon>
-                <el-icon class="table-icon"><Grid /></el-icon>
+                <icon-right class="expand-icon" :class="{ 'expanded': expandedTable === table.name }" />
+                <icon-storage class="table-icon" />
                 <span class="table-name" :title="table.name">{{ table.name }}</span>
-                <el-tag v-if="table.rowCount !== undefined && table.rowCount !== null" size="small" type="info" effect="plain">
+                <a-tag v-if="table.rowCount !== undefined && table.rowCount !== null" size="small" color="blue">
                   {{ formatRowCount(table.rowCount) }}
-                </el-tag>
+                </a-tag>
               </div>
               <div v-if="table.comment" class="table-comment-row">
                 {{ table.comment }}
@@ -60,28 +60,31 @@
             <!-- 列信息 - 懒加载渲染 -->
             <div v-if="expandedTable === table.name" class="table-content">
               <div v-if="table.loadingColumns" class="loading-state">
-                <el-icon class="is-loading"><Loading /></el-icon>
+                <icon-loading class="loading-icon" />
                 加载中...
               </div>
               <div v-else-if="table.columns.length > 0" class="column-list">
-                <el-table
+                <a-table
                   :data="table.columns"
+                  :pagination="false"
                   size="small"
-                  border
-                  style="width: 100%"
-                  :header-cell-style="{ background: '#f5f7fa', fontWeight: 500 }"
+                  bordered
+                  :scroll="{ x: '100%' }"
                 >
-                  <el-table-column prop="name" label="列名" min-width="100" show-overflow-tooltip />
-                  <el-table-column prop="type" label="类型" width="80" show-overflow-tooltip />
-                  <el-table-column prop="nullable" label="可空" width="50" align="center">
-                    <template #default="{ row }">
-                      <el-tag size="small" :type="row.nullable === 'YES' ? 'info' : 'success'">
-                        {{ row.nullable === 'YES' ? '是' : '否' }}
-                      </el-tag>
-                    </template>
-                  </el-table-column>
-                  <el-table-column prop="comment" label="注释" min-width="120" show-overflow-tooltip />
-                </el-table>
+                  <template #columns>
+                    <a-table-column title="列名" data-index="name" :ellipsis="true" />
+                    <a-table-column title="类型" data-index="type" :width="80" />
+                    <a-table-column title="可空" data-index="nullable" :width="50" align="center">
+                      <template #cell="{ record }">
+                        <a-tag v-if="record" size="small" :color="record.nullable === 'YES' ? 'orange' : 'green'">
+                          {{ record.nullable === 'YES' ? '是' : '否' }}
+                        </a-tag>
+                        <span v-else>-</span>
+                      </template>
+                    </a-table-column>
+                    <a-table-column title="注释" data-index="comment" :ellipsis="true" />
+                  </template>
+                </a-table>
               </div>
               <div v-else class="empty-state">暂无列信息</div>
             </div>
@@ -89,20 +92,26 @@
           
           <!-- 加载更多提示 -->
           <div v-if="hasMoreTables" class="load-more">
-            <el-button link size="small" @click="loadMore">
+            <a-button type="text" size="small" @click="loadMore">
               加载更多 (还有 {{ filteredTables.length - displayedTables.length }} 个)
-            </el-button>
+            </a-button>
           </div>
         </div>
       </div>
     </div>
-  </el-drawer>
+  </a-drawer>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Grid, Refresh, Search, ArrowRight, Loading } from '@element-plus/icons-vue'
+import { ref, computed, watch } from 'vue'
+import { Message } from '@arco-design/web-vue'
+import { 
+  IconSearch, 
+  IconRefresh, 
+  IconRight, 
+  IconStorage, 
+  IconLoading 
+} from '@arco-design/web-vue/es/icon'
 import { getDataSourceTables, getTableColumns } from '@/api/datasource'
 
 const props = defineProps({
@@ -132,8 +141,7 @@ const tableList = ref([])
 const loading = ref(false)
 const searchKeyword = ref('')
 const expandedTable = ref(null)
-const displayLimit = ref(50) // 初始显示50个表
-const listContainerRef = ref(null)
+const displayLimit = ref(50)
 
 // 防抖搜索
 let searchTimeout = null
@@ -187,6 +195,7 @@ const loadMore = () => {
 
 // 处理抽屉打开
 const handleOpen = () => {
+  console.log('TableStructureDrawer opened, dataSourceId:', props.dataSourceId)
   searchKeyword.value = ''
   expandedTable.value = null
   displayLimit.value = 50
@@ -208,10 +217,10 @@ const loadTableList = async () => {
         loaded: false
       }))
     } else {
-      ElMessage.error(res.message || '加载表列表失败')
+      Message.error(res.message || '加载表列表失败')
     }
   } catch (error) {
-    ElMessage.error('加载表列表失败')
+    Message.error('加载表列表失败')
   } finally {
     loading.value = false
   }
@@ -241,10 +250,16 @@ const toggleTable = async (tableName) => {
       table.columns = res.data
       table.loaded = true
     } else {
-      ElMessage.error(res.message || '加载列信息失败')
+      Message.error(res.message || '加载列信息失败')
+      // 加载失败时也要标记为已加载，避免重复请求
+      table.loaded = true
+      table.columns = []
     }
   } catch (error) {
-    ElMessage.error('加载列信息失败')
+    Message.error('加载列信息失败')
+    // 加载失败时也要标记为已加载，避免重复请求
+    table.loaded = true
+    table.columns = []
   } finally {
     table.loadingColumns = false
   }
@@ -270,7 +285,7 @@ watch(() => props.dataSourceId, () => {
     align-items: center;
     padding-bottom: 16px;
     margin-bottom: 16px;
-    border-bottom: 1px solid #ebeef5;
+    border-bottom: 1px solid var(--color-neutral-3);
 
     .header-actions {
       display: flex;
@@ -278,7 +293,7 @@ watch(() => props.dataSourceId, () => {
       gap: 12px;
 
       .table-count {
-        color: #909399;
+        color: var(--color-text-2);
         font-size: 13px;
       }
     }
@@ -290,11 +305,11 @@ watch(() => props.dataSourceId, () => {
 
     .virtual-list-container {
       .table-item {
-        border-bottom: 1px solid #f0f0f0;
+        border-bottom: 1px solid var(--color-neutral-3);
 
         &.is-expanded {
           .table-header {
-            background: #f5f7fa;
+            background: var(--color-fill-2);
 
             .expand-icon {
               transform: rotate(90deg);
@@ -310,7 +325,7 @@ watch(() => props.dataSourceId, () => {
           transition: background 0.2s;
 
           &:hover {
-            background: #f5f7fa;
+            background: var(--color-fill-2);
           }
 
           .table-header-main {
@@ -320,25 +335,29 @@ watch(() => props.dataSourceId, () => {
 
             .expand-icon {
               transition: transform 0.2s;
-              color: #909399;
+              color: var(--color-text-2);
               font-size: 12px;
               flex-shrink: 0;
+              
+              &.expanded {
+                transform: rotate(90deg);
+              }
             }
 
             .table-icon {
-              color: #409eff;
+              color: rgb(var(--primary-6));
               font-size: 14px;
               flex-shrink: 0;
             }
 
             .table-name {
               font-weight: 500;
-              color: #303133;
+              color: var(--color-text-1);
               font-size: 13px;
               flex-shrink: 0;
             }
 
-            .el-tag {
+            :deep(.arco-tag) {
               font-size: 11px;
               height: 18px;
               line-height: 16px;
@@ -348,7 +367,7 @@ watch(() => props.dataSourceId, () => {
           }
 
           .table-comment-row {
-            color: #909399;
+            color: var(--color-text-2);
             font-size: 12px;
             padding-left: 24px;
             margin-top: 2px;
@@ -360,35 +379,40 @@ watch(() => props.dataSourceId, () => {
 
         .table-content {
           padding: 0 6px 8px 24px;
-          background: #fafafa;
+          background: var(--color-fill-1);
 
           .loading-state {
             padding: 12px;
             text-align: center;
-            color: #909399;
+            color: var(--color-text-2);
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 6px;
             font-size: 13px;
+
+            .loading-icon {
+              animation: arco-loading-circle 1s linear infinite;
+            }
           }
 
           .empty-state {
             padding: 12px;
             text-align: center;
-            color: #909399;
+            color: var(--color-text-2);
             font-size: 13px;
           }
 
           .column-list {
-            :deep(.el-table) {
+            :deep(.arco-table) {
               font-size: 12px;
 
-              .el-table__cell {
-                padding: 4px 0;
+              .arco-table-td,
+              .arco-table-th {
+                padding: 4px 8px;
               }
 
-              .el-tag {
+              :deep(.arco-tag) {
                 font-size: 11px;
                 height: 18px;
                 line-height: 16px;
@@ -405,9 +429,5 @@ watch(() => props.dataSourceId, () => {
       }
     }
   }
-}
-
-:deep(.el-drawer__body) {
-  padding: 16px;
 }
 </style>

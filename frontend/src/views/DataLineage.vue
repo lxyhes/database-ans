@@ -1,106 +1,110 @@
 <template>
   <div class="data-lineage">
-    <el-card>
-      <template #header>
+    <a-card>
+      <template #title>
         <div class="card-header">
           <span>数据血缘追踪</span>
           <div class="header-actions">
-            <el-select v-model="selectedDataSource" placeholder="选择数据源" @change="onDataSourceChange">
-              <el-option v-for="ds in dataSources" :key="ds.id" :label="ds.name" :value="ds.id" />
-            </el-select>
-            <el-select v-model="selectedTable" placeholder="选择数据表" :disabled="!tables?.length" @change="loadLineageGraph">
-              <el-option v-for="table in tables" :key="table" :label="table" :value="table" />
-            </el-select>
-            <el-button type="primary" @click="showAddDialog">
-              <el-icon><Plus /></el-icon>
+            <a-select v-model="selectedDataSource" placeholder="选择数据源" @change="onDataSourceChange" style="width: 200px;">
+              <a-option v-for="ds in dataSources" :key="ds.id" :value="ds.id">{{ ds.name }}</a-option>
+            </a-select>
+            <a-select v-model="selectedTable" placeholder="选择数据表" :disabled="!tables?.length" @change="loadLineageGraph" style="width: 200px;">
+              <a-option v-for="table in tables" :key="table" :value="table">{{ table }}</a-option>
+            </a-select>
+            <a-button type="primary" @click="showAddDialog">
+              <template #icon><icon-plus /></template>
               添加血缘
-            </el-button>
+            </a-button>
           </div>
         </div>
       </template>
 
-      <el-row :gutter="20">
-        <el-col :span="16">
+      <a-row :gutter="20">
+        <a-col :span="16">
           <div ref="chartRef" class="lineage-chart"></div>
-        </el-col>
-        <el-col :span="8">
-          <el-card class="trace-card">
-            <template #header>
+        </a-col>
+        <a-col :span="8">
+          <a-card class="trace-card">
+            <template #title>
               <span>血缘追溯</span>
             </template>
-            <el-form label-width="80px">
-              <el-form-item label="表名">
-                <el-input v-model="traceTable" placeholder="输入表名" />
-              </el-form-item>
-              <el-form-item label="字段名">
-                <el-input v-model="traceColumn" placeholder="输入字段名" />
-              </el-form-item>
-              <el-form-item>
-                <el-button type="primary" @click="traceUpstream">
-                  <el-icon><Top /></el-icon>
-                  向上追溯
-                </el-button>
-                <el-button type="primary" @click="traceDownstream">
-                  <el-icon><Bottom /></el-icon>
-                  向下追溯
-                </el-button>
-              </el-form-item>
-            </el-form>
+            <a-form layout="vertical">
+              <a-form-item label="表名">
+                <a-input v-model="traceTable" placeholder="输入表名" />
+              </a-form-item>
+              <a-form-item label="字段名">
+                <a-input v-model="traceColumn" placeholder="输入字段名" />
+              </a-form-item>
+              <a-form-item>
+                <a-space>
+                  <a-button type="primary" @click="traceUpstream">
+                    <template #icon><icon-arrow-up /></template>
+                    向上追溯
+                  </a-button>
+                  <a-button type="primary" @click="traceDownstream">
+                    <template #icon><icon-arrow-down /></template>
+                    向下追溯
+                  </a-button>
+                </a-space>
+              </a-form-item>
+            </a-form>
 
-            <el-divider />
+            <a-divider />
 
             <div v-if="traceResults.length" class="trace-results">
-              <el-timeline>
-                <el-timeline-item v-for="(item, index) in traceResults" :key="index" :type="item.type">
+              <a-timeline>
+                <a-timeline-item v-for="(item, index) in traceResults" :key="index" :dot-color="item.type === 'primary' ? '#165dff' : '#00b42a'">
                   <h4>{{ item.table }}.{{ item.column }}</h4>
                   <p>{{ item.transformationType }} - {{ item.transformationLogic }}</p>
-                </el-timeline-item>
-              </el-timeline>
+                </a-timeline-item>
+              </a-timeline>
             </div>
-          </el-card>
-        </el-col>
-      </el-row>
-    </el-card>
+          </a-card>
+        </a-col>
+      </a-row>
+    </a-card>
 
     <!-- 添加血缘对话框 -->
-    <el-dialog v-model="dialogVisible" title="添加血缘关系" width="500px">
-      <el-form :model="form" label-width="100px">
-        <el-form-item label="源表">
-          <el-input v-model="form.sourceTable" placeholder="源表名" />
-        </el-form-item>
-        <el-form-item label="源字段">
-          <el-input v-model="form.sourceColumn" placeholder="源字段名" />
-        </el-form-item>
-        <el-form-item label="目标表">
-          <el-input v-model="form.targetTable" placeholder="目标表名" />
-        </el-form-item>
-        <el-form-item label="目标字段">
-          <el-input v-model="form.targetColumn" placeholder="目标字段名" />
-        </el-form-item>
-        <el-form-item label="转换类型">
-          <el-select v-model="form.transformationType" style="width: 100%">
-            <el-option label="SELECT" value="SELECT" />
-            <el-option label="JOIN" value="JOIN" />
-            <el-option label="AGGREGATION" value="AGGREGATION" />
-            <el-option label="CALCULATION" value="CALCULATION" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="转换逻辑">
-          <el-input v-model="form.transformationLogic" type="textarea" placeholder="转换逻辑描述" />
-        </el-form-item>
-      </el-form>
+    <a-modal v-model:visible="dialogVisible" title="添加血缘关系" width="500px">
+      <a-form :model="form" layout="vertical">
+        <a-form-item label="源表">
+          <a-input v-model="form.sourceTable" placeholder="源表名" />
+        </a-form-item>
+        <a-form-item label="源字段">
+          <a-input v-model="form.sourceColumn" placeholder="源字段名" />
+        </a-form-item>
+        <a-form-item label="目标表">
+          <a-input v-model="form.targetTable" placeholder="目标表名" />
+        </a-form-item>
+        <a-form-item label="目标字段">
+          <a-input v-model="form.targetColumn" placeholder="目标字段名" />
+        </a-form-item>
+        <a-form-item label="转换类型">
+          <a-select v-model="form.transformationType" style="width: 100%">
+            <a-option value="SELECT">SELECT</a-option>
+            <a-option value="JOIN">JOIN</a-option>
+            <a-option value="AGGREGATION">AGGREGATION</a-option>
+            <a-option value="CALCULATION">CALCULATION</a-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="转换逻辑">
+          <a-textarea v-model="form.transformationLogic" placeholder="转换逻辑描述" />
+        </a-form-item>
+      </a-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveLineage">保存</el-button>
+        <a-space>
+          <a-button @click="dialogVisible = false">取消</a-button>
+          <a-button type="primary" @click="saveLineage">保存</a-button>
+        </a-space>
       </template>
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Plus, Top, Bottom } from '@element-plus/icons-vue'
+import { Message } from '@arco-design/web-vue'
+import { IconPlus, IconArrowUp, IconArrowDown } from '@arco-design/web-vue/es/icon'
 import * as echarts from 'echarts'
 import request from '@/utils/request'
 
@@ -136,7 +140,7 @@ const loadDataSources = async () => {
       onDataSourceChange()
     }
   } catch (error) {
-    ElMessage.error('加载数据源失败')
+    Message.error('加载数据源失败')
   }
 }
 
@@ -150,7 +154,7 @@ const onDataSourceChange = async () => {
     })
     tables.value = res.data
   } catch (error) {
-    ElMessage.error('加载数据表失败')
+    Message.error('加载数据表失败')
   }
 }
 
@@ -162,7 +166,7 @@ const loadLineageGraph = async () => {
     })
     renderGraph(res.data)
   } catch (error) {
-    ElMessage.error('加载血缘图谱失败')
+    Message.error('加载血缘图谱失败')
   }
 }
 
@@ -179,7 +183,7 @@ const renderGraph = (data) => {
       data: data.nodes?.map(node => ({
         name: node.name,
         symbolSize: node.category === 'current' ? 60 : 40,
-        itemStyle: { color: node.category === 'current' ? '#409eff' : '#67c23a' }
+        itemStyle: { color: node.category === 'current' ? '#165dff' : '#00b42a' }
       })) || [],
       links: data.links?.map(link => ({
         source: link.source,
@@ -205,17 +209,17 @@ const showAddDialog = () => {
 const saveLineage = async () => {
   try {
     await request.post('/api/lineage', { ...form.value, dataSourceId: selectedDataSource.value })
-    ElMessage.success('添加成功')
+    Message.success('添加成功')
     dialogVisible.value = false
     loadLineageGraph()
   } catch (error) {
-    ElMessage.error('添加失败')
+    Message.error('添加失败')
   }
 }
 
 const traceUpstream = async () => {
   if (!traceTable.value || !traceColumn.value) {
-    ElMessage.warning('请输入表名和字段名')
+    Message.warning('请输入表名和字段名')
     return
   }
   try {
@@ -224,13 +228,13 @@ const traceUpstream = async () => {
     })
     traceResults.value = res.data.map(item => ({ ...item, type: 'primary' }))
   } catch (error) {
-    ElMessage.error('追溯失败')
+    Message.error('追溯失败')
   }
 }
 
 const traceDownstream = async () => {
   if (!traceTable.value || !traceColumn.value) {
-    ElMessage.warning('请输入表名和字段名')
+    Message.warning('请输入表名和字段名')
     return
   }
   try {
@@ -239,7 +243,7 @@ const traceDownstream = async () => {
     })
     traceResults.value = res.data.map(item => ({ ...item, type: 'success' }))
   } catch (error) {
-    ElMessage.error('追溯失败')
+    Message.error('追溯失败')
   }
 }
 
@@ -263,10 +267,6 @@ onUnmounted(() => chart?.dispose())
     .header-actions {
       display: flex;
       gap: 10px;
-
-      .el-select {
-        width: 200px;
-      }
     }
   }
 

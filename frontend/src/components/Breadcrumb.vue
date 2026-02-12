@@ -1,10 +1,15 @@
 <template>
-  <el-breadcrumb separator="/">
-    <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
-    <el-breadcrumb-item v-if="$route.meta.title">{{ $route.meta.title }}</el-breadcrumb-item>
-  </el-breadcrumb>
+  <a-breadcrumb>
+    <a-breadcrumb-item @click="$router.push('/')">
+      <icon-home />
+      首页
+    </a-breadcrumb-item>
+    <a-breadcrumb-item v-if="$route.meta.title">
+      {{ $route.meta.title }}
+    </a-breadcrumb-item>
+  </a-breadcrumb>
 </template>
 
 <script setup lang="ts">
-// 面包屑组件
+import { IconHome } from '@arco-design/web-vue/es/icon'
 </script>

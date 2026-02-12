@@ -1,189 +1,187 @@
 <template>
   <div class="data-quality-check">
-    <el-card>
-      <template #header>
+    <a-card>
+      <template #title>
         <div class="card-header">
           <span>数据质量检测</span>
           <div class="header-actions">
-            <el-select v-model="selectedDataSource" placeholder="选择数据源" @change="onDataSourceChange">
-              <el-option
+            <a-select v-model="selectedDataSource" placeholder="选择数据源" @change="onDataSourceChange" style="width: 200px;">
+              <a-option
                 v-for="ds in dataSources"
                 :key="ds.id"
-                :label="ds.name"
                 :value="ds.id"
-              />
-            </el-select>
-            <el-select v-model="selectedTable" placeholder="选择数据表" :disabled="!tables?.length">
-              <el-option
+              >{{ ds.name }}</a-option>
+            </a-select>
+            <a-select v-model="selectedTable" placeholder="选择数据表" :disabled="!tables?.length" style="width: 200px;">
+              <a-option
                 v-for="table in tables"
                 :key="table"
-                :label="table"
                 :value="table"
-              />
-            </el-select>
-            <el-button type="primary" @click="checkQuality" :loading="checking" :disabled="!selectedTable">
-              <el-icon><Search /></el-icon>
+              >{{ table }}</a-option>
+            </a-select>
+            <a-button type="primary" @click="checkQuality" :loading="checking" :disabled="!selectedTable">
+              <template #icon><icon-search /></template>
               开始检测
-            </el-button>
+            </a-button>
           </div>
         </div>
       </template>
 
       <div v-if="report" class="quality-report">
         <!-- 总体评分 -->
-        <el-row :gutter="20" class="score-section">
-          <el-col :span="6">
+        <a-row :gutter="20" class="score-section">
+          <a-col :span="6">
             <div class="score-card" :class="getGradeClass(report.grade)">
               <div class="score-value">{{ report.overallScore?.toFixed(1) }}</div>
               <div class="score-grade">{{ report.grade }}级</div>
               <div class="score-label">综合评分</div>
             </div>
-          </el-col>
-          <el-col :span="18">
-            <el-descriptions :column="3" border>
-              <el-descriptions-item label="表名">{{ report.tableName }}</el-descriptions-item>
-              <el-descriptions-item label="总行数">{{ report.totalRows?.toLocaleString() }}</el-descriptions-item>
-              <el-descriptions-item label="总列数">{{ report.totalColumns }}</el-descriptions-item>
-              <el-descriptions-item label="检测时间">{{ formatDate(report.checkTime) }}</el-descriptions-item>
-            </el-descriptions>
-          </el-col>
-        </el-row>
+          </a-col>
+          <a-col :span="18">
+            <a-descriptions :column="3" bordered>
+              <a-descriptions-item label="表名">{{ report.tableName }}</a-descriptions-item>
+              <a-descriptions-item label="总行数">{{ report.totalRows?.toLocaleString() }}</a-descriptions-item>
+              <a-descriptions-item label="总列数">{{ report.totalColumns }}</a-descriptions-item>
+              <a-descriptions-item label="检测时间">{{ formatDate(report.checkTime) }}</a-descriptions-item>
+            </a-descriptions>
+          </a-col>
+        </a-row>
 
         <!-- 问题统计 -->
-        <el-row :gutter="20" class="issue-stats">
-          <el-col :span="6">
-            <el-statistic title="缺失值问题" :value="report.missingValues?.length || 0">
+        <a-row :gutter="20" class="issue-stats">
+          <a-col :span="6">
+            <a-statistic title="缺失值问题" :value="report.missingValues?.length || 0">
               <template #suffix>个字段</template>
-            </el-statistic>
-          </el-col>
-          <el-col :span="6">
-            <el-statistic title="重复数据" :value="report.duplicates?.length || 0">
+            </a-statistic>
+          </a-col>
+          <a-col :span="6">
+            <a-statistic title="重复数据" :value="report.duplicates?.length || 0">
               <template #suffix>处</template>
-            </el-statistic>
-          </el-col>
-          <el-col :span="6">
-            <el-statistic title="异常值" :value="report.outliers?.length || 0">
+            </a-statistic>
+          </a-col>
+          <a-col :span="6">
+            <a-statistic title="异常值" :value="report.outliers?.length || 0">
               <template #suffix>个字段</template>
-            </el-statistic>
-          </el-col>
-          <el-col :span="6">
-            <el-statistic title="格式问题" :value="report.formatIssues?.length || 0">
+            </a-statistic>
+          </a-col>
+          <a-col :span="6">
+            <a-statistic title="格式问题" :value="report.formatIssues?.length || 0">
               <template #suffix>处</template>
-            </el-statistic>
-          </el-col>
-        </el-row>
+            </a-statistic>
+          </a-col>
+        </a-row>
 
         <!-- 详细问题列表 -->
-        <el-tabs type="border-card" class="detail-tabs">
-          <el-tab-pane label="缺失值">
-            <el-table :data="report.missingValues" v-if="report.missingValues?.length">
-              <el-table-column prop="columnName" label="字段名" />
-              <el-table-column prop="missingCount" label="缺失数量" />
-              <el-table-column prop="missingPercentage" label="缺失率">
-                <template #default="{ row }">
-                  <el-progress :percentage="row.missingPercentage" :status="getMissingValueStatus(row.missingPercentage)" />
+        <a-tabs type="card" class="detail-tabs">
+          <a-tab-pane key="missing" title="缺失值">
+            <a-table :data="report.missingValues" v-if="report.missingValues?.length" :bordered="true">
+              <a-table-column title="字段名" data-index="columnName" />
+              <a-table-column title="缺失数量" data-index="missingCount" />
+              <a-table-column title="缺失率">
+                <template #cell="{ record }">
+                  <a-progress :percent="record.missingPercentage" :status="getMissingValueStatus(record.missingPercentage)" />
                 </template>
-              </el-table-column>
-              <el-table-column prop="severity" label="严重程度">
-                <template #default="{ row }">
-                  <el-tag :type="getSeverityType(row.severity)">{{ row.severity }}</el-tag>
+              </a-table-column>
+              <a-table-column title="严重程度">
+                <template #cell="{ record }">
+                  <a-tag :color="getSeverityColor(record.severity)">{{ record.severity }}</a-tag>
                 </template>
-              </el-table-column>
-            </el-table>
-            <el-empty v-else description="未发现缺失值问题" />
-          </el-tab-pane>
+              </a-table-column>
+            </a-table>
+            <a-empty v-else description="未发现缺失值问题" />
+          </a-tab-pane>
 
-          <el-tab-pane label="重复数据">
-            <el-table :data="report.duplicates" v-if="report.duplicates?.length">
-              <el-table-column prop="duplicateRowCount" label="重复行数" />
-              <el-table-column prop="duplicatePercentage" label="重复率">
-                <template #default="{ row }">
-                  <el-progress :percentage="row.duplicatePercentage" status="exception" />
+          <a-tab-pane key="duplicates" title="重复数据">
+            <a-table :data="report.duplicates" v-if="report.duplicates?.length" :bordered="true">
+              <a-table-column title="重复行数" data-index="duplicateRowCount" />
+              <a-table-column title="重复率">
+                <template #cell="{ record }">
+                  <a-progress :percent="record.duplicatePercentage" status="danger" />
                 </template>
-              </el-table-column>
-              <el-table-column prop="keyColumns" label="关键字段">
-                <template #default="{ row }">
-                  <el-tag v-for="col in row.keyColumns" :key="col" size="small">{{ col }}</el-tag>
+              </a-table-column>
+              <a-table-column title="关键字段">
+                <template #cell="{ record }">
+                  <a-tag v-for="col in record.keyColumns" :key="col" size="small">{{ col }}</a-tag>
                 </template>
-              </el-table-column>
-            </el-table>
-            <el-empty v-else description="未发现重复数据" />
-          </el-tab-pane>
+              </a-table-column>
+            </a-table>
+            <a-empty v-else description="未发现重复数据" />
+          </a-tab-pane>
 
-          <el-tab-pane label="异常值">
-            <el-table :data="report.outliers" v-if="report.outliers?.length">
-              <el-table-column prop="columnName" label="字段名" />
-              <el-table-column prop="outlierCount" label="异常数量" />
-              <el-table-column prop="outlierPercentage" label="异常率">
-                <template #default="{ row }">
-                  <el-progress :percentage="row.outlierPercentage" />
+          <a-tab-pane key="outliers" title="异常值">
+            <a-table :data="report.outliers" v-if="report.outliers?.length" :bordered="true">
+              <a-table-column title="字段名" data-index="columnName" />
+              <a-table-column title="异常数量" data-index="outlierCount" />
+              <a-table-column title="异常率">
+                <template #cell="{ record }">
+                  <a-progress :percent="record.outlierPercentage" />
                 </template>
-              </el-table-column>
-              <el-table-column prop="detectionMethod" label="检测方法" />
-              <el-table-column label="正常范围">
-                <template #default="{ row }">
-                  {{ row.minNormal?.toFixed(2) }} ~ {{ row.maxNormal?.toFixed(2) }}
+              </a-table-column>
+              <a-table-column title="检测方法" data-index="detectionMethod" />
+              <a-table-column title="正常范围">
+                <template #cell="{ record }">
+                  {{ record.minNormal?.toFixed(2) }} ~ {{ record.maxNormal?.toFixed(2) }}
                 </template>
-              </el-table-column>
-            </el-table>
-            <el-empty v-else description="未发现异常值" />
-          </el-tab-pane>
+              </a-table-column>
+            </a-table>
+            <a-empty v-else description="未发现异常值" />
+          </a-tab-pane>
 
-          <el-tab-pane label="格式问题">
-            <el-table :data="report.formatIssues" v-if="report.formatIssues?.length">
-              <el-table-column prop="columnName" label="字段名" />
-              <el-table-column prop="expectedFormat" label="期望格式" />
-              <el-table-column prop="issueCount" label="问题数量" />
-            </el-table>
-            <el-empty v-else description="未发现格式问题" />
-          </el-tab-pane>
+          <a-tab-pane key="format" title="格式问题">
+            <a-table :data="report.formatIssues" v-if="report.formatIssues?.length" :bordered="true">
+              <a-table-column title="字段名" data-index="columnName" />
+              <a-table-column title="期望格式" data-index="expectedFormat" />
+              <a-table-column title="问题数量" data-index="issueCount" />
+            </a-table>
+            <a-empty v-else description="未发现格式问题" />
+          </a-tab-pane>
 
-          <el-tab-pane label="字段质量">
-            <el-table :data="report.columnQuality" v-if="report.columnQuality?.length">
-              <el-table-column prop="columnName" label="字段名" />
-              <el-table-column prop="dataType" label="数据类型" />
-              <el-table-column prop="completeness" label="完整性">
-                <template #default="{ row }">
-                  <el-progress :percentage="row.completeness" />
+          <a-tab-pane key="columns" title="字段质量">
+            <a-table :data="report.columnQuality" v-if="report.columnQuality?.length" :bordered="true">
+              <a-table-column title="字段名" data-index="columnName" />
+              <a-table-column title="数据类型" data-index="dataType" />
+              <a-table-column title="完整性">
+                <template #cell="{ record }">
+                  <a-progress :percent="record.completeness" />
                 </template>
-              </el-table-column>
-              <el-table-column prop="grade" label="等级">
-                <template #default="{ row }">
-                  <el-tag :type="getGradeType(row.grade)">{{ row.grade }}</el-tag>
+              </a-table-column>
+              <a-table-column title="等级">
+                <template #cell="{ record }">
+                  <a-tag :color="getGradeColor(record.grade)">{{ record.grade }}</a-tag>
                 </template>
-              </el-table-column>
-            </el-table>
-          </el-tab-pane>
-        </el-tabs>
+              </a-table-column>
+            </a-table>
+          </a-tab-pane>
+        </a-tabs>
 
         <!-- 修复建议 -->
-        <el-card class="suggestions-card" v-if="report.repairSuggestions?.length">
-          <template #header>
+        <a-card class="suggestions-card" v-if="report.repairSuggestions?.length">
+          <template #title>
             <span>修复建议</span>
           </template>
-          <el-timeline>
-            <el-timeline-item
+          <a-timeline>
+            <a-timeline-item
               v-for="(suggestion, index) in report.repairSuggestions"
               :key="index"
-              :type="getSuggestionType(suggestion.priority)"
-              :timestamp="suggestion.issueType"
+              :dot-color="getSuggestionColor(suggestion.priority)"
             >
+              <template #label>{{ suggestion.issueType }}</template>
               <h4>{{ suggestion.description }}</h4>
               <p>{{ suggestion.suggestion }}</p>
-            </el-timeline-item>
-          </el-timeline>
-        </el-card>
+            </a-timeline-item>
+          </a-timeline>
+        </a-card>
       </div>
 
-      <el-empty v-else description="请选择数据表并开始检测" />
-    </el-card>
+      <a-empty v-else description="请选择数据表并开始检测" />
+    </a-card>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
+import { Message } from '@arco-design/web-vue'
+import { IconSearch } from '@arco-design/web-vue/es/icon'
 import request from '@/utils/request'
 
 const dataSources = ref([])
@@ -209,7 +207,7 @@ const loadDataSources = async () => {
     }
   } catch (error) {
     console.error('加载数据源失败:', error)
-    ElMessage.error('加载数据源失败')
+    Message.error('加载数据源失败')
   }
 }
 
@@ -230,7 +228,7 @@ const onDataSourceChange = async () => {
     console.log('Tables set to:', tables.value)
   } catch (error) {
     console.error('加载数据表失败:', error)
-    ElMessage.error('加载数据表失败')
+    Message.error('加载数据表失败')
   }
 }
 
@@ -244,9 +242,9 @@ const checkQuality = async () => {
       params: { tableName: selectedTable.value }
     })
     report.value = res.data
-    ElMessage.success('检测完成')
+    Message.success('检测完成')
   } catch (error) {
-    ElMessage.error('检测失败')
+    Message.error('检测失败')
   } finally {
     checking.value = false
   }
@@ -262,38 +260,38 @@ const getGradeClass = (grade) => {
   return classes[grade] || ''
 }
 
-const getGradeType = (grade) => {
-  const types = {
-    'A': 'success',
-    'B': 'primary',
-    'C': 'warning',
-    'D': 'danger'
+const getGradeColor = (grade) => {
+  const colors = {
+    'A': 'green',
+    'B': 'arcoblue',
+    'C': 'orange',
+    'D': 'red'
   }
-  return types[grade] || 'info'
+  return colors[grade] || 'gray'
 }
 
-const getSeverityType = (severity) => {
-  const types = {
-    '严重': 'danger',
-    '警告': 'warning',
-    '轻微': 'info'
+const getSeverityColor = (severity) => {
+  const colors = {
+    '严重': 'red',
+    '警告': 'orange',
+    '轻微': 'arcoblue'
   }
-  return types[severity] || 'info'
+  return colors[severity] || 'gray'
 }
 
 const getMissingValueStatus = (percentage) => {
-  if (percentage > 50) return 'exception'
+  if (percentage > 50) return 'danger'
   if (percentage > 20) return 'warning'
   return 'success'
 }
 
-const getSuggestionType = (priority) => {
-  const types = {
-    1: 'danger',
-    2: 'warning',
-    3: 'primary'
+const getSuggestionColor = (priority) => {
+  const colors = {
+    1: 'red',
+    2: 'orange',
+    3: 'arcoblue'
   }
-  return types[priority] || 'info'
+  return colors[priority] || 'gray'
 }
 
 const formatDate = (date) => {
@@ -318,10 +316,6 @@ onMounted(() => {
     .header-actions {
       display: flex;
       gap: 10px;
-
-      .el-select {
-        width: 200px;
-      }
     }
   }
 
@@ -336,16 +330,16 @@ onMounted(() => {
         color: white;
 
         &.grade-a {
-          background: linear-gradient(135deg, #67c23a, #85ce61);
+          background: linear-gradient(135deg, rgb(var(--success-6)), rgb(var(--success-4)));
         }
         &.grade-b {
-          background: linear-gradient(135deg, #409eff, #66b1ff);
+          background: linear-gradient(135deg, rgb(var(--primary-6)), rgb(var(--primary-4)));
         }
         &.grade-c {
-          background: linear-gradient(135deg, #e6a23c, #ebb563);
+          background: linear-gradient(135deg, rgb(var(--warning-6)), rgb(var(--warning-4)));
         }
         &.grade-d {
-          background: linear-gradient(135deg, #f56c6c, #f78989);
+          background: linear-gradient(135deg, rgb(var(--danger-6)), rgb(var(--danger-4)));
         }
 
         .score-value {
@@ -368,7 +362,7 @@ onMounted(() => {
     .issue-stats {
       margin-bottom: 20px;
       padding: 20px;
-      background: #f5f7fa;
+      background: var(--color-fill-2);
       border-radius: 4px;
     }
 
@@ -381,12 +375,12 @@ onMounted(() => {
 
       h4 {
         margin: 0 0 5px 0;
-        color: #303133;
+        color: var(--color-text-1);
       }
 
       p {
         margin: 0;
-        color: #606266;
+        color: var(--color-text-2);
         font-size: 14px;
       }
     }

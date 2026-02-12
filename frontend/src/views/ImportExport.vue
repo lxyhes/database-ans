@@ -1,97 +1,99 @@
 <template>
   <div class="import-export-page">
-    <el-row :gutter="20">
+    <a-row :gutter="20">
       <!-- 数据导入 -->
-      <el-col :span="12">
-        <el-card shadow="hover">
-          <template #header>
+      <a-col :span="12">
+        <a-card hoverable>
+          <template #title>
             <div class="card-header">
               <span>数据导入</span>
-              <el-tag type="success">支持 Excel / CSV</el-tag>
+              <a-tag color="green">支持 Excel / CSV</a-tag>
             </div>
           </template>
 
-          <el-upload
+          <a-upload
             class="upload-area"
-            drag
-            action="#"
+            draggable
             :auto-upload="false"
             :on-change="handleFileChange"
             accept=".xlsx,.xls,.csv"
           >
-            <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-            <div class="el-upload__text">
-              拖拽文件到此处或 <em>点击上传</em>
-            </div>
-            <template #tip>
-              <div class="el-upload__tip">
-                支持 .xlsx, .xls, .csv 格式文件
+            <template #upload-button>
+              <div class="upload-trigger">
+                <icon-upload :size="48" />
+                <div class="upload-text">
+                  拖拽文件到此处或 <em>点击上传</em>
+                </div>
+                <div class="upload-hint">
+                  支持 .xlsx, .xls, .csv 格式文件
+                </div>
               </div>
             </template>
-          </el-upload>
+          </a-upload>
 
-          <el-form :model="importForm" label-width="100px" class="import-form">
-            <el-form-item label="目标表名">
-              <el-input v-model="importForm.tableName" placeholder="默认为 imported_data" />
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" :loading="importing" @click="importData">
+          <a-form :model="importForm" layout="vertical" class="import-form">
+            <a-form-item label="目标表名">
+              <a-input v-model="importForm.tableName" placeholder="默认为 imported_data" />
+            </a-form-item>
+            <a-form-item>
+              <a-button type="primary" :loading="importing" @click="importData">
                 开始导入
-              </el-button>
-            </el-form-item>
-          </el-form>
-        </el-card>
-      </el-col>
+              </a-button>
+            </a-form-item>
+          </a-form>
+        </a-card>
+      </a-col>
 
       <!-- 数据导出 -->
-      <el-col :span="12">
-        <el-card shadow="hover">
-          <template #header>
+      <a-col :span="12">
+        <a-card hoverable>
+          <template #title>
             <div class="card-header">
               <span>数据导出</span>
-              <el-tag type="primary">自定义查询</el-tag>
+              <a-tag color="arcoblue">自定义查询</a-tag>
             </div>
           </template>
 
-          <el-form :model="exportForm" label-width="100px">
-            <el-form-item label="SQL 查询">
-              <el-input
+          <a-form :model="exportForm" layout="vertical">
+            <a-form-item label="SQL 查询">
+              <a-textarea
                 v-model="exportForm.sql"
-                type="textarea"
                 :rows="6"
                 placeholder="输入 SQL 查询语句，例如：SELECT * FROM sales"
+                allow-clear
               />
-            </el-form-item>
+            </a-form-item>
 
-            <el-form-item label="导出格式">
-              <el-radio-group v-model="exportForm.format">
-                <el-radio label="excel">Excel (.xlsx)</el-radio>
-                <el-radio label="csv">CSV (.csv)</el-radio>
-              </el-radio-group>
-            </el-form-item>
+            <a-form-item label="导出格式">
+              <a-radio-group v-model="exportForm.format">
+                <a-radio value="excel">Excel (.xlsx)</a-radio>
+                <a-radio value="csv">CSV (.csv)</a-radio>
+              </a-radio-group>
+            </a-form-item>
 
-            <el-form-item>
-              <el-button type="primary" :icon="Download" :loading="exporting" @click="exportData">
+            <a-form-item>
+              <a-button type="primary" :loading="exporting" @click="exportData">
+                <template #icon><icon-download /></template>
                 导出数据
-              </el-button>
-            </el-form-item>
-          </el-form>
-        </el-card>
-      </el-col>
-    </el-row>
+              </a-button>
+            </a-form-item>
+          </a-form>
+        </a-card>
+      </a-col>
+    </a-row>
 
     <!-- 导入进度 -->
-    <el-dialog v-model="progressVisible" title="导入进度" width="400px" :close-on-click-modal="false">
-      <el-progress :percentage="progress" :status="progressStatus" />
+    <a-modal v-model:visible="progressVisible" title="导入进度" width="400px" :mask-closable="false">
+      <a-progress :percent="progress" :status="progressStatus" />
       <p class="progress-text">{{ progressText }}</p>
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { UploadFilled, Download } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { IconUpload, IconDownload } from '@arco-design/web-vue/es/icon'
+import { Message } from '@arco-design/web-vue'
 
 const importForm = ref({
   tableName: '',
@@ -107,24 +109,26 @@ const importing = ref(false)
 const exporting = ref(false)
 const progressVisible = ref(false)
 const progress = ref(0)
-const progressStatus = ref('')
+const progressStatus = ref('normal')
 const progressText = ref('准备导入...')
 
-const handleFileChange = (file: any) => {
-  importForm.value.file = file.raw
+const handleFileChange = (fileList: any) => {
+  if (fileList && fileList.length > 0) {
+    importForm.value.file = fileList[0].file
+  }
 }
 
 const importData = async () => {
   if (!importForm.value.file) {
-    ElMessage.warning('请先选择文件')
+    Message.warning('请先选择文件')
     return
   }
 
   importing.value = true
   progressVisible.value = true
   progress.value = 0
-  progressStatus.value = ''
-  progressText.value = '正在上传文件...'
+  progressStatus.value = 'normal'
+  progressText.value = '准备导入...'
 
   // 模拟进度
   const interval = setInterval(() => {
@@ -148,18 +152,18 @@ const importData = async () => {
     progressText.value = '导入完成！'
 
     if (result.success) {
-      ElMessage.success('数据导入成功')
+      Message.success('数据导入成功')
       setTimeout(() => {
         progressVisible.value = false
       }, 1500)
     } else {
-      ElMessage.error(result.message || '导入失败')
+      Message.error(result.message || '导入失败')
     }
   } catch (error) {
     clearInterval(interval)
-    progressStatus.value = 'exception'
+    progressStatus.value = 'error'
     progressText.value = '导入失败'
-    ElMessage.error('导入过程出错')
+    Message.error('导入过程出错')
   } finally {
     importing.value = false
   }
@@ -167,7 +171,7 @@ const importData = async () => {
 
 const exportData = async () => {
   if (!exportForm.value.sql.trim()) {
-    ElMessage.warning('请输入 SQL 查询语句')
+    Message.warning('请输入 SQL 查询语句')
     return
   }
 
@@ -178,12 +182,12 @@ const exportData = async () => {
       exportForm.value.format as 'excel' | 'csv'
     )
     if (result.success) {
-      ElMessage.success('导出成功')
+      Message.success('导出成功')
     } else {
-      ElMessage.error(result.message || '导出失败')
+      Message.error(result.message || '导出失败')
     }
   } catch (error) {
-    ElMessage.error('导出过程出错')
+    Message.error('导出过程出错')
   } finally {
     exporting.value = false
   }
@@ -201,6 +205,40 @@ const exportData = async () => {
   width: 100%;
 }
 
+.upload-trigger {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: var(--color-fill-2);
+  border: 2px dashed var(--color-neutral-4);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.upload-trigger:hover {
+  border-color: rgb(var(--primary-6));
+  background: var(--color-fill-3);
+}
+
+.upload-text {
+  margin-top: 16px;
+  color: var(--color-text-2);
+}
+
+.upload-text em {
+  color: rgb(var(--primary-6));
+  font-style: normal;
+}
+
+.upload-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--color-text-3);
+}
+
 .import-form {
   margin-top: 20px;
 }
@@ -208,6 +246,6 @@ const exportData = async () => {
 .progress-text {
   text-align: center;
   margin-top: 16px;
-  color: #606266;
+  color: var(--color-text-2);
 }
 </style>

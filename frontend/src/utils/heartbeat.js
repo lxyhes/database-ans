@@ -1,5 +1,5 @@
 import request from './request'
-import { ElMessage } from 'element-plus'
+import { Message } from '@arco-design/web-vue'
 
 /**
  * 心跳检测管理器
@@ -56,7 +56,7 @@ class HeartbeatManager {
           // 从离线恢复到在线
           this.isOnline = true
           this.notifyListeners('online')
-          ElMessage.success('服务连接恢复')
+          Message.success('服务连接恢复')
         }
       }
     } catch (error) {

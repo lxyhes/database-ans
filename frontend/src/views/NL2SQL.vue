@@ -1,44 +1,41 @@
 <template>
   <div class="nl2sql-page">
-    <el-row :gutter="20">
+    <a-row :gutter="20" class="main-row">
       <!-- 左侧：查询区域 -->
-      <el-col :span="16">
-        <el-card class="query-card">
-          <template #header>
+      <a-col :span="16" class="left-col">
+        <a-card class="query-card" :bordered="false">
+          <template #title>
             <div class="card-header">
               <span class="title">
-                <el-icon><ChatDotRound /></el-icon>
-                智能查询
+                <icon-message /> 智能查询
               </span>
               <div class="header-actions">
                 <!-- 数据源选择 -->
-                <el-select 
+                <a-select 
                   v-model="selectedDataSource" 
                   placeholder="选择数据源" 
-                  style="width: 200px; margin-right: 10px"
+                  :style="{ width: '200px', marginRight: '10px' }"
                 >
-                  <el-option
+                  <a-option
                     v-for="ds in dataSources"
                     :key="ds.id"
-                    :label="ds.name + (ds.isDefault ? ' (默认)' : '')"
                     :value="ds.id"
                   >
-                    <span>{{ ds.name }}</span>
-                    <el-tag v-if="ds.isDefault" type="success" size="small" style="margin-left: 8px">默认</el-tag>
-                  </el-option>
-                </el-select>
+                    {{ ds.name }}{{ ds.isDefault ? ' (默认)' : '' }}
+                  </a-option>
+                </a-select>
                 
                 <!-- AI 提供商选择 -->
-                <el-select 
+                <a-select 
                   v-model="selectedProvider" 
                   placeholder="AI 提供商" 
-                  style="width: 140px"
+                  :style="{ width: '140px' }"
                 >
-                  <el-option label="DashScope (推荐)" value="dashscope" />
-                  <el-option label="iFlow" value="iflow" />
-                  <el-option label="Mock (演示)" value="mock" />
-                  <el-option label="自动选择" value="" />
-                </el-select>
+                  <a-option value="dashscope">DashScope (推荐)</a-option>
+                  <a-option value="iflow">iFlow</a-option>
+                  <a-option value="mock">Mock (演示)</a-option>
+                  <a-option value="">自动选择</a-option>
+                </a-select>
               </div>
             </div>
           </template>
@@ -46,22 +43,22 @@
           <!-- 对话历史 -->
           <div class="chat-history" ref="chatHistoryRef">
             <div v-if="chatHistory.length === 0" class="empty-state">
-              <el-empty description="开始你的第一个查询">
+              <a-empty description="开始你的第一个查询">
                 <template #image>
-                  <el-icon :size="64" color="#909399"><ChatLineRound /></el-icon>
+                  <icon-message :size="64" :style="{ color: '#86909c' }" />
                 </template>
                 <p class="hint">输入自然语言，AI 会自动转换为 SQL 并执行</p>
                 <div class="examples">
-                  <el-tag 
+                  <a-tag 
                     v-for="example in examples" 
                     :key="example"
                     class="example-tag"
                     @click="useExample(example)"
                   >
                     {{ example }}
-                  </el-tag>
+                  </a-tag>
                 </div>
-              </el-empty>
+              </a-empty>
             </div>
 
             <div v-else class="messages">
@@ -74,7 +71,7 @@
                 <!-- 用户消息 -->
                 <div v-if="msg.type === 'user'" class="user-message">
                   <div class="avatar">
-                    <el-icon><User /></el-icon>
+                    <icon-user />
                   </div>
                   <div class="content">
                     <div class="text">{{ msg.content }}</div>
@@ -84,7 +81,7 @@
                 <!-- AI 消息 -->
                 <div v-else class="ai-message">
                   <div class="avatar">
-                    <el-icon><Cpu /></el-icon>
+                    <icon-robot />
                   </div>
                   <div class="content">
                     <!-- 生成的 SQL -->
@@ -92,21 +89,19 @@
                       <div class="sql-header">
                         <span>生成的 SQL</span>
                         <div class="actions">
-                          <el-button type="primary" text size="small" @click="copySQL(msg.sql)">
-                            <el-icon><CopyDocument /></el-icon> 复制
-                          </el-button>
-                          <el-button type="info" text size="small" @click="toggleFormat(msg)" v-if="!msg.formatted">
-                            <el-icon><View /></el-icon> 格式化
-                          </el-button>
-                          <el-button type="info" text size="small" @click="toggleFormat(msg)" v-else>
-                            <el-icon><View /></el-icon> 原始
-                          </el-button>
-                          <el-button type="info" text size="small" @click="explainSQL(msg.sql)">
-                            <el-icon><QuestionFilled /></el-icon> 解释
-                          </el-button>
-                          <el-button type="warning" text size="small" @click="optimizeSQL(msg.sql)">
-                            <el-icon><MagicStick /></el-icon> 优化
-                          </el-button>
+                          <a-button type="text" size="small" @click="copySQL(msg.sql)">
+                            <template #icon><icon-copy /></template> 复制
+                          </a-button>
+                          <a-button type="text" size="small" @click="toggleFormat(msg)">
+                            <template #icon><icon-eye /></template>
+                            {{ msg.formatted ? '原始' : '格式化' }}
+                          </a-button>
+                          <a-button type="text" size="small" @click="explainSQL(msg.sql)">
+                            <template #icon><icon-question-circle /></template> 解释
+                          </a-button>
+                          <a-button type="text" size="small" status="warning" @click="optimizeSQL(msg.sql)">
+                            <template #icon><icon-bulb /></template> 优化
+                          </a-button>
                         </div>
                       </div>
                       <pre class="sql-code"><code v-html="getFormattedSql(msg)"></code></pre>
@@ -114,51 +109,53 @@
 
                     <!-- 查询描述 -->
                     <div v-if="msg.description" class="description">
-                      <el-icon><InfoFilled /></el-icon>
+                      <icon-info-circle />
                       {{ msg.description }}
                     </div>
 
                     <!-- 数据表格 -->
                     <div v-if="msg.data && msg.data.length > 0" class="data-table">
-                      <el-table 
+                      <a-table 
                         :data="getPagedData(msg)" 
-                        border 
-                        stripe
-                        max-height="400"
+                        :bordered="true"
+                        :stripe="true"
+                        :scroll="{ maxHeight: 400 }"
                         size="small"
                       >
-                        <el-table-column 
-                          v-for="col in getColumns(msg.data)" 
-                          :key="col"
-                          :prop="col"
-                          :label="col"
-                          show-overflow-tooltip
-                        />
-                      </el-table>
+                        <template #columns>
+                          <a-table-column 
+                            v-for="col in getColumns(msg.data)" 
+                            :key="col"
+                            :title="col"
+                            :data-index="col"
+                            :ellipsis="true"
+                            :tooltip="true"
+                          />
+                        </template>
+                      </a-table>
                       <div class="table-footer">
                         <div class="stats-info">
                           <span class="record-count">共 {{ msg.data.length }} 条记录</span>
                           <span v-if="msg.executionTime" class="execution-time">
-                            <el-icon><Timer /></el-icon>
+                            <icon-clock-circle />
                             耗时 {{ msg.executionTime < 1000 ? msg.executionTime + ' ms' : (msg.executionTime / 1000).toFixed(2) + ' s' }}
                           </span>
                         </div>
                         <div class="footer-right">
-                          <el-pagination
+                          <a-pagination
                             v-if="msg.data.length > 20"
-                            v-model:current-page="msg.currentPage"
+                            v-model:current="msg.currentPage"
                             :page-size="20"
                             :total="msg.data.length"
-                            layout="prev, pager, next"
-                            small
+                            size="small"
                           />
                           <div class="action-buttons">
-                            <el-button type="success" text size="small" @click="openChartGenerator(msg.data)">
-                              <el-icon><TrendCharts /></el-icon> 生成图表
-                            </el-button>
-                            <el-button type="primary" text size="small" @click="exportData(msg.data)">
-                              <el-icon><Download /></el-icon> 导出
-                            </el-button>
+                            <a-button type="text" status="success" size="small" @click="openChartGenerator(msg.data)">
+                              <template #icon><icon-bar-chart /></template> 生成图表
+                            </a-button>
+                            <a-button type="text" size="small" @click="exportData(msg.data)">
+                              <template #icon><icon-download /></template> 导出
+                            </a-button>
                           </div>
                         </div>
                       </div>
@@ -166,13 +163,13 @@
 
                     <!-- 错误信息 -->
                     <div v-if="msg.error" class="error-message">
-                      <el-icon><CircleClose /></el-icon>
+                      <icon-close-circle />
                       {{ msg.error }}
                     </div>
 
                     <!-- 加载状态 -->
                     <div v-if="msg.loading" class="loading">
-                      <el-icon class="is-loading"><Loading /></el-icon>
+                      <a-spin size="small" />
                       AI 正在思考...
                     </div>
                   </div>
@@ -183,40 +180,37 @@
 
           <!-- 输入区域 -->
           <div class="input-area">
-            <el-input
+            <a-textarea
               v-model="inputQuery"
-              type="textarea"
               :rows="3"
               placeholder="输入你的查询，例如：查询最近7天的销售额"
               :disabled="loading"
               @keydown.enter.prevent="handleEnter"
             />
             <div class="input-actions">
-              <el-button 
+              <a-button 
                 type="primary" 
                 :loading="loading"
                 :disabled="!inputQuery.trim()"
                 @click="sendQuery"
               >
-                <el-icon><Promotion /></el-icon>
+                <template #icon><icon-send /></template>
                 发送查询
-              </el-button>
-              <el-button @click="clearHistory">
-                <el-icon><Delete /></el-icon>
+              </a-button>
+              <a-button @click="clearHistory">
+                <template #icon><icon-delete /></template>
                 清空对话
-              </el-button>
+              </a-button>
             </div>
           </div>
-        </el-card>
-      </el-col>
+        </a-card>
+      </a-col>
 
       <!-- 右侧：辅助信息 -->
-      <el-col :span="8">
+      <a-col :span="8" class="right-col">
         <!-- 当前数据源信息 -->
-        <el-card class="info-card">
-          <template #header>
-            <span>当前数据源</span>
-          </template>
+        <a-card class="info-card" :bordered="false">
+          <template #title>当前数据源</template>
           <div v-if="currentDataSource" class="datasource-info">
             <div class="info-item">
               <span class="label">名称:</span>
@@ -224,7 +218,7 @@
             </div>
             <div class="info-item">
               <span class="label">类型:</span>
-              <el-tag size="small">{{ currentDataSource.type }}</el-tag>
+              <a-tag size="small">{{ currentDataSource.type }}</a-tag>
             </div>
             <div class="info-item">
               <span class="label">主机:</span>
@@ -235,19 +229,19 @@
               <span class="value">{{ currentDataSource.database }}</span>
             </div>
           </div>
-          <el-empty v-else description="未选择数据源" />
-        </el-card>
+          <a-empty v-else description="未选择数据源" />
+        </a-card>
 
         <!-- 查询模板库 -->
-        <el-card class="template-card">
-          <template #header>
+        <a-card class="template-card" :bordered="false">
+          <template #title>
             <div class="template-header">
               <span>查询模板</span>
-              <el-tag size="small" type="info">点击使用</el-tag>
+              <a-tag size="small" color="arcoblue">点击使用</a-tag>
             </div>
           </template>
-          <el-collapse v-model="activeTemplateCategory">
-            <el-collapse-item title="📊 统计分析" name="stats">
+          <a-collapse :default-active-key="['stats']">
+            <a-collapse-item title="📊 统计分析" key="stats">
               <div class="template-list">
                 <div class="template-item" @click="useTemplate('统计表中记录总数')">
                   <span class="template-text">统计表中记录总数</span>
@@ -262,8 +256,8 @@
                   <span class="template-text">计算某字段的总和</span>
                 </div>
               </div>
-            </el-collapse-item>
-            <el-collapse-item title="📈 趋势分析" name="trend">
+            </a-collapse-item>
+            <a-collapse-item title="📈 趋势分析" key="trend">
               <div class="template-list">
                 <div class="template-item" @click="useTemplate('按日期统计每天的数量')">
                   <span class="template-text">按日期统计每天的数量</span>
@@ -275,8 +269,8 @@
                   <span class="template-text">对比本月和上月的数据</span>
                 </div>
               </div>
-            </el-collapse-item>
-            <el-collapse-item title="🔍 数据查询" name="query">
+            </a-collapse-item>
+            <a-collapse-item title="🔍 数据查询" key="query">
               <div class="template-list">
                 <div class="template-item" @click="useTemplate('查询最近10条记录')">
                   <span class="template-text">查询最近10条记录</span>
@@ -291,8 +285,8 @@
                   <span class="template-text">多表关联查询</span>
                 </div>
               </div>
-            </el-collapse-item>
-            <el-collapse-item title="📋 排名对比" name="rank">
+            </a-collapse-item>
+            <a-collapse-item title="📋 排名对比" key="rank">
               <div class="template-list">
                 <div class="template-item" @click="useTemplate('按某字段降序排列前10名')">
                   <span class="template-text">按某字段降序排列前10名</span>
@@ -304,59 +298,55 @@
                   <span class="template-text">对比两个时间段的数据</span>
                 </div>
               </div>
-            </el-collapse-item>
-          </el-collapse>
-        </el-card>
+            </a-collapse-item>
+          </a-collapse>
+        </a-card>
 
         <!-- 查询提示 -->
-        <el-card class="tips-card">
-          <template #header>
-            <span>查询提示</span>
-          </template>
+        <a-card class="tips-card" :bordered="false">
+          <template #title>查询提示</template>
           <ul class="tips-list">
             <li>使用自然语言描述你的查询需求</li>
             <li>可以追问或修正之前的查询</li>
             <li>支持聚合、排序、筛选等操作</li>
             <li>可以要求生成图表</li>
           </ul>
-        </el-card>
+        </a-card>
 
         <!-- 快捷操作 -->
-        <el-card class="quick-actions">
-          <template #header>
-            <span>快捷操作</span>
-          </template>
+        <a-card class="quick-actions" :bordered="false">
+          <template #title>快捷操作</template>
           <div class="action-buttons">
-            <el-button @click="goToDataSourceManage">
-              <el-icon><Setting /></el-icon>
+            <a-button @click="goToDataSourceManage">
+              <template #icon><icon-settings /></template>
               管理数据源
-            </el-button>
-            <el-button @click="showSchema">
-              <el-icon><View /></el-icon>
+            </a-button>
+            <a-button @click="showSchema">
+              <template #icon><icon-eye /></template>
               查看表结构
-            </el-button>
+            </a-button>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </a-card>
+      </a-col>
+    </a-row>
 
     <!-- SQL 解释对话框 -->
-    <el-dialog v-model="explainDialogVisible" title="SQL 解释" width="600px">
+    <a-modal v-model:visible="explainDialogVisible" title="SQL 解释" width="600px">
       <div class="sql-explanation">
         <pre class="sql-code">{{ currentSQL }}</pre>
-        <el-divider />
+        <a-divider />
         <div class="explanation-content">{{ sqlExplanation }}</div>
       </div>
-    </el-dialog>
+    </a-modal>
 
     <!-- SQL 优化对话框 -->
-    <el-dialog v-model="optimizeDialogVisible" title="SQL 优化建议" width="600px">
+    <a-modal v-model:visible="optimizeDialogVisible" title="SQL 优化建议" width="600px">
       <div class="sql-optimization">
         <pre class="sql-code">{{ currentSQL }}</pre>
-        <el-divider />
+        <a-divider />
         <div class="optimization-content">{{ sqlOptimization }}</div>
       </div>
-    </el-dialog>
+    </a-modal>
 
     <!-- 表结构抽屉组件 -->
     <TableStructureDrawer
@@ -376,12 +366,24 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import {
-  ChatDotRound, ChatLineRound, User, Cpu, CopyDocument,
-  QuestionFilled, MagicStick, InfoFilled, Download,
-  CircleClose, Loading, Promotion, Delete, Setting, View, Timer, TrendCharts
-} from '@element-plus/icons-vue'
+import { 
+  IconMessage, 
+  IconUser, 
+  IconRobot, 
+  IconCopy,
+  IconEye, 
+  IconQuestionCircle, 
+  IconBulb, 
+  IconInfoCircle, 
+  IconDownload,
+  IconCloseCircle, 
+  IconSend, 
+  IconDelete, 
+  IconSettings, 
+  IconBarChart,
+  IconClockCircle
+} from '@arco-design/web-vue/es/icon'
+import { Message } from '@arco-design/web-vue'
 import { naturalLanguageToSQL, explainSQL as apiExplainSQL, optimizeSQL as apiOptimizeSQL } from '@/api/nl2sql'
 import { getDataSources } from '@/api/datasource'
 import { exportToExcel } from '@/utils/export'
@@ -432,7 +434,7 @@ const loadDataSources = async () => {
     if (res.success) {
       dataSources.value = res.data
       // 默认选择默认数据源
-      const defaultDS = res.data.find(ds => ds.isDefault)
+      const defaultDS = res.data.find((ds: any) => ds.isDefault)
       if (defaultDS) {
         selectedDataSource.value = defaultDS.id
       } else if (res.data.length > 0) {
@@ -440,33 +442,33 @@ const loadDataSources = async () => {
       }
     }
   } catch (error) {
-    ElMessage.error('加载数据源失败')
+    Message.error('加载数据源失败')
   }
 }
 
 // 使用示例
-const useExample = (example) => {
+const useExample = (example: string) => {
   inputQuery.value = example
 }
 
 // 查询模板相关
-const activeTemplateCategory = ref('stats')
-
-const useTemplate = (template) => {
+const useTemplate = (template: string) => {
   inputQuery.value = template
-  ElMessage.success('已填充模板，可修改后发送')
+  Message.success('已填充模板，可修改后发送')
 }
 
 // 发送查询
 const sendQuery = async () => {
   if (!inputQuery.value.trim()) return
   if (!selectedDataSource.value) {
-    ElMessage.warning('请先选择一个数据源')
+    Message.warning('请先选择一个数据源')
     return
   }
 
   const query = inputQuery.value.trim()
-  
+  inputQuery.value = ''
+  loading.value = true
+
   // 添加用户消息
   chatHistory.value.push({
     type: 'user',
@@ -476,25 +478,27 @@ const sendQuery = async () => {
   // 添加 AI 消息（加载中）
   const aiMessageIndex = chatHistory.value.push({
     type: 'ai',
-    loading: true
+    loading: true,
+    sql: null,
+    data: null,
+    error: null
   }) - 1
 
-  inputQuery.value = ''
-  loading.value = true
   scrollToBottom()
 
   try {
-    // 构建历史上下文
     const history = chatHistory.value
-      .filter(msg => !msg.loading)
-      .map(msg => `${msg.type === 'user' ? '用户' : 'AI'}: ${msg.content || msg.sql || ''}`)
-      .join('\n')
+      .slice(0, -1)
+      .map((msg: any) => ({
+        role: msg.type === 'user' ? 'user' : 'assistant',
+        content: msg.content || msg.sql || ''
+      }))
 
     const res = await naturalLanguageToSQL({
       query,
-      provider: selectedProvider.value,
       dataSourceId: selectedDataSource.value,
-      history: history.length > 1000 ? history.slice(-1000) : history
+      provider: selectedProvider.value || undefined,
+      history
     })
 
     // 更新 AI 消息
@@ -513,7 +517,7 @@ const sendQuery = async () => {
     } else {
       aiMessage.error = res.message || '查询失败'
     }
-  } catch (error) {
+  } catch (error: any) {
     const aiMessage = chatHistory.value[aiMessageIndex]
     aiMessage.loading = false
     aiMessage.error = '请求失败: ' + error.message
@@ -524,7 +528,7 @@ const sendQuery = async () => {
 }
 
 // 处理回车键
-const handleEnter = (e) => {
+const handleEnter = (e: KeyboardEvent) => {
   if (!e.shiftKey) {
     sendQuery()
   }
@@ -540,86 +544,79 @@ const scrollToBottom = () => {
 }
 
 // 切换格式化状态
-const toggleFormat = (msg) => {
+const toggleFormat = (msg: any) => {
   msg.formatted = !msg.formatted
 }
 
 // 获取格式化后的 SQL
-const getFormattedSql = (msg) => {
+const getFormattedSql = (msg: any) => {
   if (!msg.sql) return ''
   const sql = msg.formatted ? formatSql(msg.sql) : msg.sql
   return highlightSql(sql)
 }
 
 // 复制 SQL
-const copySQL = (sql) => {
-  navigator.clipboard.writeText(sql).then(() => {
-    ElMessage.success('SQL 已复制到剪贴板')
-  })
+const copySQL = (sql: string) => {
+  navigator.clipboard.writeText(sql)
+  Message.success('SQL 已复制到剪贴板')
 }
 
 // 解释 SQL
-const explainSQL = async (sql) => {
+const explainSQL = async (sql: string) => {
   currentSQL.value = sql
-  sqlExplanation.value = '正在分析...'
   explainDialogVisible.value = true
-  
+  sqlExplanation.value = '正在分析...'
+
   try {
-    const res = await apiExplainSQL({
-      sql,
-      provider: selectedProvider.value
-    })
+    const res = await apiExplainSQL({ sql })
     if (res.success) {
       sqlExplanation.value = res.explanation
     } else {
       sqlExplanation.value = res.message || '解释失败'
     }
   } catch (error) {
-    sqlExplanation.value = '解释失败: ' + error.message
+    sqlExplanation.value = '解释请求失败'
   }
 }
 
 // 优化 SQL
-const optimizeSQL = async (sql) => {
+const optimizeSQL = async (sql: string) => {
   currentSQL.value = sql
-  sqlOptimization.value = '正在优化...'
   optimizeDialogVisible.value = true
-  
+  sqlOptimization.value = '正在优化...'
+
   try {
-    const res = await apiOptimizeSQL({
-      sql,
-      provider: selectedProvider.value
-    })
+    const res = await apiOptimizeSQL({ sql })
     if (res.success) {
       sqlOptimization.value = res.optimization
     } else {
       sqlOptimization.value = res.message || '优化失败'
     }
   } catch (error) {
-    sqlOptimization.value = '优化失败: ' + error.message
+    sqlOptimization.value = '优化请求失败'
   }
 }
 
 // 导出数据
-const exportData = (data) => {
+const exportData = (data: any[]) => {
   exportToExcel(data, 'query_result')
-  ElMessage.success('数据导出成功')
+  Message.success('数据导出成功')
 }
 
 // 打开图表生成器
-const openChartGenerator = (data) => {
+const openChartGenerator = (data: any[]) => {
   chartData.value = data
   chartGeneratorVisible.value = true
 }
 
 // 获取表格列
-const getColumns = (data) => {
+const getColumns = (data: any[]) => {
   if (!data || data.length === 0) return []
   return Object.keys(data[0])
 }
 
 // 获取分页数据
-const getPagedData = (msg) => {
+const getPagedData = (msg: any) => {
   if (!msg.data || msg.data.length === 0) return []
   const page = msg.currentPage || 1
   const start = (page - 1) * 20
@@ -637,10 +634,10 @@ const goToDataSourceManage = () => {
   router.push('/datasource')
 }
 
-// 显示表结构抽屉
+// 显示表结构
 const showSchema = () => {
   if (!selectedDataSource.value) {
-    ElMessage.warning('请先选择一个数据源')
+    Message.warning('请先选择一个数据源')
     return
   }
   tableDrawerVisible.value = true
@@ -657,14 +654,15 @@ onMounted(() => {
   height: calc(100vh - 100px);
   overflow: hidden;
 
-  :deep(.el-row) {
+  .main-row {
     height: 100%;
     margin: 0 !important;
-  }
 
-  :deep(.el-col) {
-    height: 100%;
-    padding: 0 10px !important;
+    .left-col,
+    .right-col {
+      height: 100%;
+      padding: 0 10px !important;
+    }
   }
 
   .query-card {
@@ -673,7 +671,7 @@ onMounted(() => {
     flex-direction: column;
     overflow: hidden;
 
-    :deep(.el-card__body) {
+    :deep(.arco-card-body) {
       flex: 1;
       display: flex;
       flex-direction: column;
@@ -692,27 +690,23 @@ onMounted(() => {
         align-items: center;
         gap: 8px;
       }
-
-      .header-actions {
-        display: flex;
-        align-items: center;
-      }
     }
 
     .chat-history {
       flex: 1;
       overflow-y: auto;
       padding: 20px;
-      background: #f5f7fa;
+      background: #f7f8fa;
 
       .empty-state {
         height: 100%;
         display: flex;
-        align-items: center;
+        flex-direction: column;
         justify-content: center;
+        align-items: center;
 
         .hint {
-          color: #909399;
+          color: #86909c;
           margin: 16px 0;
         }
 
@@ -721,13 +715,14 @@ onMounted(() => {
           flex-wrap: wrap;
           gap: 8px;
           justify-content: center;
+          max-width: 500px;
 
           .example-tag {
             cursor: pointer;
 
             &:hover {
-              background: #409eff;
-              color: white;
+              color: #165DFF;
+              background: #e8f3ff;
             }
           }
         }
@@ -740,26 +735,31 @@ onMounted(() => {
           &.user {
             .user-message {
               display: flex;
-              justify-content: flex-end;
+              gap: 12px;
 
               .avatar {
                 width: 36px;
                 height: 36px;
                 border-radius: 50%;
-                background: #409eff;
-                color: white;
+                background: #165DFF;
+                color: #fff;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                margin-left: 12px;
+                flex-shrink: 0;
               }
 
               .content {
-                background: #409eff;
-                color: white;
+                flex: 1;
+                background: #fff;
                 padding: 12px 16px;
-                border-radius: 12px 12px 0 12px;
-                max-width: 70%;
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+
+                .text {
+                  color: #1d2129;
+                  line-height: 1.6;
+                }
               }
             }
           }
@@ -767,48 +767,56 @@ onMounted(() => {
           &.ai {
             .ai-message {
               display: flex;
+              gap: 12px;
 
               .avatar {
                 width: 36px;
                 height: 36px;
                 border-radius: 50%;
-                background: #67c23a;
-                color: white;
+                background: #00b42a;
+                color: #fff;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                margin-right: 12px;
                 flex-shrink: 0;
               }
 
               .content {
                 flex: 1;
-                background: white;
-                padding: 16px;
-                border-radius: 0 12px 12px 12px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
                 .sql-block {
+                  background: #1d2129;
+                  border-radius: 8px;
+                  overflow: hidden;
                   margin-bottom: 12px;
 
                   .sql-header {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    margin-bottom: 8px;
-                    font-weight: 500;
+                    padding: 8px 12px;
+                    background: #272e3b;
+                    color: #fff;
+                    font-size: 13px;
 
                     .actions {
                       display: flex;
-                      gap: 8px;
+                      gap: 4px;
+
+                      :deep(.arco-btn) {
+                        color: #c9cdd4;
+
+                        &:hover {
+                          color: #fff;
+                        }
+                      }
                     }
                   }
 
                   .sql-code {
-                    background: #1e1e1e;
+                    background: #1d2129;
                     color: #d4d4d4;
                     padding: 12px;
-                    border-radius: 6px;
                     overflow-x: auto;
                     margin: 0;
                     font-family: 'Courier New', monospace;
@@ -836,16 +844,24 @@ onMounted(() => {
                 }
 
                 .description {
-                  color: #606266;
-                  font-size: 13px;
+                  background: #e8f3ff;
+                  border: 1px solid #bedaff;
+                  border-radius: 6px;
+                  padding: 10px 12px;
                   margin-bottom: 12px;
+                  color: #165DFF;
+                  font-size: 13px;
                   display: flex;
                   align-items: center;
-                  gap: 6px;
+                  gap: 8px;
                 }
 
                 .data-table {
-                  margin-top: 12px;
+                  background: #fff;
+                  border-radius: 8px;
+                  padding: 12px;
+                  margin-bottom: 12px;
+                  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 
                   .table-footer {
                     display: flex;
@@ -853,7 +869,7 @@ onMounted(() => {
                     align-items: center;
                     margin-top: 8px;
                     padding-top: 8px;
-                    border-top: 1px solid #ebeef5;
+                    border-top: 1px solid #e5e6eb;
 
                     .stats-info {
                       display: flex;
@@ -862,12 +878,12 @@ onMounted(() => {
                     }
 
                     .record-count {
-                      color: #909399;
+                      color: #86909c;
                       font-size: 13px;
                     }
 
                     .execution-time {
-                      color: #67c23a;
+                      color: #00b42a;
                       font-size: 13px;
                       display: flex;
                       align-items: center;
@@ -883,17 +899,23 @@ onMounted(() => {
                 }
 
                 .error-message {
-                  color: #f56c6c;
-                  display: flex;
-                  align-items: center;
-                  gap: 6px;
-                }
-
-                .loading {
-                  color: #909399;
+                  background: #ffece8;
+                  border: 1px solid #ffccc7;
+                  border-radius: 6px;
+                  padding: 10px 12px;
+                  color: #f53f3f;
+                  font-size: 13px;
                   display: flex;
                   align-items: center;
                   gap: 8px;
+                }
+
+                .loading {
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  color: #86909c;
+                  padding: 12px;
                 }
               }
             }
@@ -903,15 +925,15 @@ onMounted(() => {
     }
 
     .input-area {
-      padding: 20px;
-      border-top: 1px solid #ebeef5;
-      background: white;
+      padding: 16px 20px;
+      border-top: 1px solid #e5e6eb;
+      background: #fff;
 
       .input-actions {
         display: flex;
         justify-content: flex-end;
         gap: 10px;
-        margin-top: 12px;
+        margin-top: 10px;
       }
     }
   }
@@ -924,7 +946,7 @@ onMounted(() => {
     max-height: calc(50vh - 60px);
     overflow-y: auto;
 
-    :deep(.el-card__body) {
+    :deep(.arco-card-body) {
       max-height: calc(50vh - 110px);
       overflow-y: auto;
     }
@@ -939,14 +961,14 @@ onMounted(() => {
       .template-item {
         padding: 8px 12px;
         margin: 4px 0;
-        background: #f5f7fa;
+        background: #f2f3f5;
         border-radius: 4px;
         cursor: pointer;
         transition: all 0.2s;
 
         &:hover {
-          background: #e6f0ff;
-          color: #409eff;
+          background: #e8f3ff;
+          color: #165DFF;
         }
 
         .template-text {
@@ -960,39 +982,39 @@ onMounted(() => {
         display: flex;
         justify-content: space-between;
         padding: 8px 0;
-        border-bottom: 1px solid #ebeef5;
+        border-bottom: 1px solid #e5e6eb;
 
         &:last-child {
           border-bottom: none;
         }
 
         .label {
-          color: #606266;
+          color: #4e5969;
         }
 
         .value {
-          color: #303133;
+          color: #1d2129;
           font-weight: 500;
         }
       }
     }
 
     .tips-list {
-      margin: 0;
       padding-left: 20px;
-      color: #606266;
+      margin: 0;
 
       li {
-        margin-bottom: 8px;
+        padding: 4px 0;
+        color: #4e5969;
       }
     }
 
     .action-buttons {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
 
-      .el-button {
+      :deep(.arco-btn) {
         justify-content: flex-start;
       }
     }
@@ -1002,20 +1024,19 @@ onMounted(() => {
 .sql-explanation,
 .sql-optimization {
   .sql-code {
-    background: #1e1e1e;
+    background: #1d2129;
     color: #d4d4d4;
-    padding: 16px;
+    padding: 12px;
     border-radius: 6px;
     overflow-x: auto;
     font-family: 'Courier New', monospace;
-    font-size: 14px;
-    margin: 0;
+    font-size: 13px;
   }
 
   .explanation-content,
   .optimization-content {
-    line-height: 1.8;
-    color: #303133;
+    color: #1d2129;
+    line-height: 1.6;
     white-space: pre-wrap;
   }
 }

@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { ElMessage } from 'element-plus'
+import { Message } from '@arco-design/web-vue'
 
 // 创建 axios 实例
 const request = axios.create({
@@ -28,7 +28,7 @@ request.interceptors.response.use(
     
     // 如果响应不是成功状态，显示错误信息
     if (res.success === false) {
-      ElMessage.error(res.message || '请求失败')
+      Message.error(res.message || '请求失败')
       return Promise.reject(new Error(res.message || '请求失败'))
     }
     
@@ -62,7 +62,7 @@ request.interceptors.response.use(
       message = '无法连接到服务器，请检查网络'
     }
     
-    ElMessage.error(message)
+    Message.error(message)
     return Promise.reject(error)
   }
 )

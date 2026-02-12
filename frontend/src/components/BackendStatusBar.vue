@@ -1,27 +1,29 @@
 <template>
-  <Transition name="slide-down">
-    <div v-if="!isConnected" class="backend-status-bar">
-      <div class="status-content">
-        <el-icon class="warning-icon"><WarningFilled /></el-icon>
-        <span class="status-text">后端服务连接中断</span>
-        <span class="last-check" v-if="lastCheckTime">
-          最后检测: {{ formatTime(lastCheckTime) }}
-        </span>
+  <a-collapse :active-key="!isConnected ? ['1'] : []">
+    <a-collapse-item key="1" :show-expand-icon="false">
+      <div class="backend-status-bar">
+        <div class="status-content">
+          <icon-exclamation-circle-fill size="18" class="warning-icon" />
+          <span class="status-text">后端服务连接中断</span>
+          <span v-if="lastCheckTime" class="last-check">
+            最后检测: {{ formatTime(lastCheckTime) }}
+          </span>
+        </div>
+        <div class="status-actions">
+          <a-button size="small" @click="handleReconnect" :loading="checking">
+            <template #icon><icon-refresh /></template>
+            重新连接
+          </a-button>
+        </div>
       </div>
-      <div class="status-actions">
-        <el-button size="small" @click="checkStatus" :loading="checking">
-          <el-icon><Refresh /></el-icon>
-          重新连接
-        </el-button>
-      </div>
-    </div>
-  </Transition>
+    </a-collapse-item>
+  </a-collapse>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useBackendStatus } from '@/composables/useBackendStatus'
-import { WarningFilled, Refresh } from '@element-plus/icons-vue'
+import { IconExclamationCircleFill, IconRefresh } from '@arco-design/web-vue/es/icon'
 
 const { isConnected, lastCheckTime, checkStatus } = useBackendStatus()
 const checking = ref(false)
@@ -44,14 +46,12 @@ const handleReconnect = async () => {
 <style scoped lang="scss">
 .backend-status-bar {
   height: 40px;
-  background: linear-gradient(135deg, #f56c6c 0%, #e6a23c 100%);
+  background: linear-gradient(135deg, #f53f3f 0%, #ff7d00 100%);
   color: white;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
-  z-index: 9999;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   flex-shrink: 0;
 
   .status-content {
@@ -60,7 +60,6 @@ const handleReconnect = async () => {
     gap: 10px;
 
     .warning-icon {
-      font-size: 18px;
       animation: pulse 1.5s infinite;
     }
 
@@ -76,7 +75,7 @@ const handleReconnect = async () => {
   }
 
   .status-actions {
-    .el-button {
+    :deep(.arco-btn) {
       background: rgba(255, 255, 255, 0.2);
       border-color: rgba(255, 255, 255, 0.3);
       color: white;
@@ -88,17 +87,6 @@ const handleReconnect = async () => {
   }
 }
 
-.slide-down-enter-active,
-.slide-down-leave-active {
-  transition: all 0.3s ease;
-}
-
-.slide-down-enter-from,
-.slide-down-leave-to {
-  transform: translateY(-100%);
-  opacity: 0;
-}
-
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
@@ -106,5 +94,23 @@ const handleReconnect = async () => {
   50% {
     opacity: 0.5;
   }
+}
+
+:deep(.arco-collapse) {
+  border: none;
+  background: transparent;
+}
+
+:deep(.arco-collapse-item) {
+  border: none;
+}
+
+:deep(.arco-collapse-item-header) {
+  display: none;
+}
+
+:deep(.arco-collapse-item-content) {
+  padding: 0;
+  background: transparent;
 }
 </style>

@@ -1,22 +1,21 @@
 <template>
   <div class="data-relation-graph">
-    <el-card>
-      <template #header>
+    <a-card>
+      <template #title>
         <div class="card-header">
           <span>数据表关系图谱</span>
           <div class="header-actions">
-            <el-select v-model="selectedDataSource" placeholder="选择数据源" @change="loadGraphData">
-              <el-option
+            <a-select v-model="selectedDataSource" placeholder="选择数据源" @change="loadGraphData" style="width: 200px;">
+              <a-option
                 v-for="ds in dataSources"
                 :key="ds.id"
-                :label="ds.name"
                 :value="ds.id"
-              />
-            </el-select>
-            <el-button type="primary" @click="analyzeRelations" :loading="analyzing">
-              <el-icon><Refresh /></el-icon>
+              >{{ ds.name }}</a-option>
+            </a-select>
+            <a-button type="primary" @click="analyzeRelations" :loading="analyzing">
+              <template #icon><icon-refresh /></template>
               分析关系
-            </el-button>
+            </a-button>
           </div>
         </div>
       </template>
@@ -39,47 +38,47 @@
       </div>
 
       <div class="stats" v-if="graphData">
-        <el-row :gutter="20">
-          <el-col :span="6">
+        <a-row :gutter="20">
+          <a-col :span="6">
             <div class="stat-item">
               <div class="stat-value">{{ graphData.totalTables }}</div>
               <div class="stat-label">数据表</div>
             </div>
-          </el-col>
-          <el-col :span="6">
+          </a-col>
+          <a-col :span="6">
             <div class="stat-item">
               <div class="stat-value">{{ graphData.totalRelations }}</div>
               <div class="stat-label">关联关系</div>
             </div>
-          </el-col>
-        </el-row>
+          </a-col>
+        </a-row>
       </div>
-    </el-card>
+    </a-card>
 
     <!-- 关系详情对话框 -->
-    <el-dialog v-model="detailVisible" title="关系详情" width="600px">
-      <el-descriptions :column="1" border v-if="selectedRelation">
-        <el-descriptions-item label="源表">{{ selectedRelation.source }}</el-descriptions-item>
-        <el-descriptions-item label="源字段">{{ selectedRelation.sourceColumn }}</el-descriptions-item>
-        <el-descriptions-item label="目标表">{{ selectedRelation.target }}</el-descriptions-item>
-        <el-descriptions-item label="目标字段">{{ selectedRelation.targetColumn }}</el-descriptions-item>
-        <el-descriptions-item label="关系类型">
-          <el-tag :type="getRelationTypeTag(selectedRelation.relationType)">
+    <a-modal v-model:visible="detailVisible" title="关系详情" width="600px">
+      <a-descriptions :column="1" bordered v-if="selectedRelation">
+        <a-descriptions-item label="源表">{{ selectedRelation.source }}</a-descriptions-item>
+        <a-descriptions-item label="源字段">{{ selectedRelation.sourceColumn }}</a-descriptions-item>
+        <a-descriptions-item label="目标表">{{ selectedRelation.target }}</a-descriptions-item>
+        <a-descriptions-item label="目标字段">{{ selectedRelation.targetColumn }}</a-descriptions-item>
+        <a-descriptions-item label="关系类型">
+          <a-tag :color="getRelationTypeColor(selectedRelation.relationType)">
             {{ getRelationTypeText(selectedRelation.relationType) }}
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="置信度">
-          <el-progress :percentage="Math.round(selectedRelation.confidence * 100)" />
-        </el-descriptions-item>
-      </el-descriptions>
-    </el-dialog>
+          </a-tag>
+        </a-descriptions-item>
+        <a-descriptions-item label="置信度">
+          <a-progress :percent="Math.round(selectedRelation.confidence * 100)" />
+        </a-descriptions-item>
+      </a-descriptions>
+    </a-modal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Refresh } from '@element-plus/icons-vue'
+import { Message } from '@arco-design/web-vue'
+import { IconRefresh } from '@arco-design/web-vue/es/icon'
 import * as echarts from 'echarts'
 import request from '@/utils/request'
 
@@ -104,7 +103,7 @@ const loadDataSources = async () => {
       loadGraphData()
     }
   } catch (error) {
-    ElMessage.error('加载数据源失败')
+    Message.error('加载数据源失败')
   }
 }
 
@@ -119,24 +118,24 @@ const loadGraphData = async () => {
     renderGraph()
   } catch (error) {
     console.error('加载关系图谱失败:', error)
-    ElMessage.error('加载关系图谱失败')
+    Message.error('加载关系图谱失败')
   }
 }
 
 // 分析关系
 const analyzeRelations = async () => {
   if (!selectedDataSource.value) {
-    ElMessage.warning('请先选择数据源')
+    Message.warning('请先选择数据源')
     return
   }
 
   analyzing.value = true
   try {
     await request.post(`/api/table-relations/analyze/${selectedDataSource.value}`)
-    ElMessage.success('关系分析完成')
+    Message.success('关系分析完成')
     loadGraphData()
   } catch (error) {
-    ElMessage.error('分析失败')
+    Message.error('分析失败')
   } finally {
     analyzing.value = false
   }
@@ -147,8 +146,11 @@ const renderGraph = () => {
   if (!chartRef.value || !graphData.value) return
 
   // 检查是否有数据
-  if (!graphData.value.nodes || graphData.value.nodes.length === 0) {
-    ElMessage.info('未检测到表关系，请确保数据库中存在外键约束或符合命名规范的关联字段（如 user_id 关联 users.id）')
+  const nodes = graphData.value.nodes || []
+  const links = graphData.value.links || []
+  
+  if (nodes.length === 0) {
+    Message.info('未检测到表关系，请确保数据库中存在外键约束或符合命名规范的关联字段（如 user_id 关联 users.id）')
     return
   }
 
@@ -174,14 +176,14 @@ const renderGraph = () => {
       {
         type: 'graph',
         layout: 'force',
-        data: graphData.value.nodes.map(node => ({
+        data: nodes.filter(node => node && node.id).map(node => ({
           ...node,
           symbolSize: 50,
           itemStyle: {
             color: getNodeColor(node.category)
           }
         })),
-        links: graphData.value.links.map(link => ({
+        links: links.filter(link => link && link.source && link.target).map(link => ({
           ...link,
           lineStyle: {
             color: getLinkColor(link.relationType),
@@ -249,14 +251,14 @@ const getLinkColor = (relationType) => {
   return colors[type] || '#999'
 }
 
-const getRelationTypeTag = (type) => {
-  const tags = {
-    'FOREIGN_KEY': 'success',
-    'INFERRED': 'warning',
-    'MANUAL': 'primary'
+const getRelationTypeColor = (type) => {
+  const colors = {
+    'FOREIGN_KEY': 'green',
+    'INFERRED': 'orange',
+    'MANUAL': 'arcoblue'
   }
   const typeStr = type?.toString() || ''
-  return tags[typeStr] || 'info'
+  return colors[typeStr] || 'gray'
 }
 
 const getRelationTypeText = (type) => {
@@ -293,10 +295,6 @@ onUnmounted(() => {
     .header-actions {
       display: flex;
       gap: 10px;
-
-      .el-select {
-        width: 200px;
-      }
     }
   }
 
@@ -310,7 +308,7 @@ onUnmounted(() => {
     gap: 20px;
     margin-top: 20px;
     padding: 15px;
-    background: #f5f7fa;
+    background: var(--color-fill-2);
     border-radius: 4px;
 
     .legend-item {
@@ -340,7 +338,7 @@ onUnmounted(() => {
   .stats {
     margin-top: 20px;
     padding: 20px;
-    background: #f5f7fa;
+    background: var(--color-fill-2);
     border-radius: 4px;
 
     .stat-item {
@@ -349,12 +347,12 @@ onUnmounted(() => {
       .stat-value {
         font-size: 28px;
         font-weight: bold;
-        color: #409eff;
+        color: rgb(var(--primary-6));
       }
 
       .stat-label {
         margin-top: 5px;
-        color: #666;
+        color: var(--color-text-2);
       }
     }
   }

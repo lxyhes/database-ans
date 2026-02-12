@@ -1,12 +1,12 @@
 <template>
   <div class="iflow-page">
-    <el-row :gutter="20">
-      <el-col :span="16">
-        <el-card shadow="hover" class="chat-card">
-          <template #header>
+    <a-row :gutter="20">
+      <a-col :span="16">
+        <a-card hoverable class="chat-card">
+          <template #title>
             <div class="card-header">
               <span>iFlow AI 智能助手</span>
-              <el-tag type="success">Powered by AI</el-tag>
+              <a-tag color="green">Powered by AI</a-tag>
             </div>
           </template>
 
@@ -18,9 +18,9 @@
               :class="['message', msg.type]"
             >
               <div class="message-avatar">
-                <el-avatar
+                <a-avatar
                   :size="40"
-                  :src="msg.type === 'user' ? userAvatar : aiAvatar"
+                  :image-url="msg.type === 'user' ? userAvatar : aiAvatar"
                 />
               </div>
               <div class="message-content">
@@ -43,62 +43,62 @@
 
           <!-- 输入区域 -->
           <div class="chat-input-area">
-            <el-input
+            <a-textarea
               v-model="inputMessage"
-              type="textarea"
               :rows="3"
               placeholder="输入你的问题，iFlow AI 会帮你解答..."
               @keydown.enter.prevent="sendMessage"
+              allow-clear
             />
             <div class="input-actions">
-              <el-select v-model="selectedFunction" size="small" style="width: 150px;">
-                <el-option label="智能对话" value="query" />
-                <el-option label="数据分析" value="analyze" />
-                <el-option label="SQL生成" value="generate-sql" />
-                <el-option label="代码生成" value="generate-code" />
-                <el-option label="代码解释" value="explain-code" />
-                <el-option label="数据洞察" value="insights" />
-              </el-select>
-              <el-button
+              <a-select v-model="selectedFunction" size="small" style="width: 150px;">
+                <a-option value="query">智能对话</a-option>
+                <a-option value="analyze">数据分析</a-option>
+                <a-option value="generate-sql">SQL生成</a-option>
+                <a-option value="generate-code">代码生成</a-option>
+                <a-option value="explain-code">代码解释</a-option>
+                <a-option value="insights">数据洞察</a-option>
+              </a-select>
+              <a-button
                 type="primary"
-                :icon="Position"
                 :loading="loading"
                 @click="sendMessage"
               >
+                <template #icon><icon-send /></template>
                 发送
-              </el-button>
+              </a-button>
             </div>
           </div>
-        </el-card>
-      </el-col>
+        </a-card>
+      </a-col>
 
-      <el-col :span="8">
-        <el-card shadow="hover" class="function-card">
-          <template #header>
+      <a-col :span="8">
+        <a-card hoverable class="function-card">
+          <template #title>
             <span>功能说明</span>
           </template>
-          <el-timeline>
-            <el-timeline-item type="primary">
+          <a-timeline>
+            <a-timeline-item dot-color="#165dff">
               <h4>智能对话</h4>
               <p class="function-desc">与 AI 进行自然语言对话，获取数据相关帮助</p>
-            </el-timeline-item>
-            <el-timeline-item type="success">
+            </a-timeline-item>
+            <a-timeline-item dot-color="#00b42a">
               <h4>数据分析</h4>
               <p class="function-desc">对数据进行深度分析，发现隐藏的模式和趋势</p>
-            </el-timeline-item>
-            <el-timeline-item type="warning">
+            </a-timeline-item>
+            <a-timeline-item dot-color="#ff7d00">
               <h4>SQL 生成</h4>
               <p class="function-desc">用自然语言描述需求，自动生成 SQL 语句</p>
-            </el-timeline-item>
-            <el-timeline-item type="info">
+            </a-timeline-item>
+            <a-timeline-item dot-color="#14c9c9">
               <h4>代码助手</h4>
               <p class="function-desc">生成、解释、优化代码</p>
-            </el-timeline-item>
-          </el-timeline>
-        </el-card>
+            </a-timeline-item>
+          </a-timeline>
+        </a-card>
 
-        <el-card shadow="hover" class="tips-card">
-          <template #header>
+        <a-card hoverable class="tips-card">
+          <template #title>
             <span>使用提示</span>
           </template>
           <ul class="tips-list">
@@ -107,16 +107,16 @@
             <li>支持代码高亮和复制</li>
             <li>可以切换不同功能模式</li>
           </ul>
-        </el-card>
-      </el-col>
-    </el-row>
+        </a-card>
+      </a-col>
+    </a-row>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
-import { Position } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { IconSend } from '@arco-design/web-vue/es/icon'
+import { Message } from '@arco-design/web-vue'
 import MarkdownRenderer from '../components/MarkdownRenderer.vue'
 
 const messages = ref<any[]>([
@@ -226,7 +226,7 @@ const sendMessage = async () => {
   flex: 1;
   overflow-y: auto;
   padding: 20px;
-  background: #f5f7fa;
+  background: var(--color-fill-2);
   border-radius: 8px;
   margin-bottom: 16px;
 }
@@ -246,14 +246,14 @@ const sendMessage = async () => {
 
 .message-content {
   max-width: 70%;
-  background: #fff;
+  background: var(--color-bg-2);
   padding: 12px 16px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .message.user .message-content {
-  background: #409EFF;
+  background: rgb(var(--primary-6));
   color: #fff;
 }
 
@@ -270,7 +270,7 @@ const sendMessage = async () => {
 }
 
 .message-time {
-  color: #909399;
+  color: var(--color-text-3);
   margin-left: 12px;
 }
 
@@ -291,7 +291,7 @@ const sendMessage = async () => {
 .loading-dots span {
   width: 8px;
   height: 8px;
-  background: #409EFF;
+  background: rgb(var(--primary-6));
   border-radius: 50%;
   animation: bounce 1.4s infinite ease-in-out both;
 }
@@ -305,7 +305,7 @@ const sendMessage = async () => {
 }
 
 .chat-input-area {
-  border-top: 1px solid #e4e7ed;
+  border-top: 1px solid var(--color-neutral-3);
   padding-top: 16px;
 }
 
@@ -322,14 +322,14 @@ const sendMessage = async () => {
 }
 
 .function-desc {
-  color: #606266;
+  color: var(--color-text-2);
   font-size: 13px;
   margin: 4px 0 0 0;
 }
 
 .tips-list {
   padding-left: 20px;
-  color: #606266;
+  color: var(--color-text-2);
   line-height: 2;
 }
 

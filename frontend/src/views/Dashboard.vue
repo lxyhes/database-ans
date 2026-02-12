@@ -1,105 +1,105 @@
 <template>
   <div class="dashboard">
     <!-- 指标卡片 -->
-    <el-row :gutter="20" class="metrics-row">
-      <el-col :span="6">
-        <el-card class="metric-card" shadow="hover">
-          <div class="metric-icon" style="background: #409EFF;">
-            <el-icon size="24" color="#fff"><Money /></el-icon>
+    <a-row :gutter="20" class="metrics-row">
+      <a-col :span="6">
+        <a-card class="metric-card" hoverable>
+          <div class="metric-icon" style="background: #165dff;">
+            <icon-tag :size="24" />
           </div>
           <div class="metric-content">
             <div class="metric-value">¥{{ formatNumber(metrics.totalSales) }}</div>
             <div class="metric-label">总销售额</div>
           </div>
-        </el-card>
-      </el-col>
+        </a-card>
+      </a-col>
       
-      <el-col :span="6">
-        <el-card class="metric-card" shadow="hover">
-          <div class="metric-icon" style="background: #67C23A;">
-            <el-icon size="24" color="#fff"><ShoppingCart /></el-icon>
+      <a-col :span="6">
+        <a-card class="metric-card" hoverable>
+          <div class="metric-icon" style="background: #00b42a;">
+            <icon-gift :size="24" />
           </div>
           <div class="metric-content">
             <div class="metric-value">{{ formatNumber(metrics.orderCount) }}</div>
             <div class="metric-label">订单数量</div>
           </div>
-        </el-card>
-      </el-col>
+        </a-card>
+      </a-col>
       
-      <el-col :span="6">
-        <el-card class="metric-card" shadow="hover">
-          <div class="metric-icon" style="background: #E6A23C;">
-            <el-icon size="24" color="#fff"><User /></el-icon>
+      <a-col :span="6">
+        <a-card class="metric-card" hoverable>
+          <div class="metric-icon" style="background: #ff7d00;">
+            <icon-user :size="24" />
           </div>
           <div class="metric-content">
             <div class="metric-value">{{ formatNumber(metrics.customerCount) }}</div>
             <div class="metric-label">客户数量</div>
           </div>
-        </el-card>
-      </el-col>
+        </a-card>
+      </a-col>
       
-      <el-col :span="6">
-        <el-card class="metric-card" shadow="hover">
-          <div class="metric-icon" style="background: #F56C6C;">
-            <el-icon size="24" color="#fff"><Goods /></el-icon>
+      <a-col :span="6">
+        <a-card class="metric-card" hoverable>
+          <div class="metric-icon" style="background: #f53f3f;">
+            <icon-apps :size="24" />
           </div>
           <div class="metric-content">
             <div class="metric-value">{{ formatNumber(metrics.productCount) }}</div>
             <div class="metric-label">产品数量</div>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </a-card>
+      </a-col>
+    </a-row>
 
     <!-- 图表区域 -->
-    <el-row :gutter="20" class="charts-row">
-      <el-col :span="12">
-        <el-card class="chart-card" shadow="hover">
-          <template #header>
+    <a-row :gutter="20" class="charts-row">
+      <a-col :span="12">
+        <a-card class="chart-card" hoverable>
+          <template #title>
             <div class="card-header">
               <span>销售趋势</span>
-              <el-tag type="info">近7天</el-tag>
+              <a-tag color="arcoblue">近7天</a-tag>
             </div>
           </template>
           <v-chart class="chart" :option="salesTrendOption" autoresize />
-        </el-card>
-      </el-col>
+        </a-card>
+      </a-col>
       
-      <el-col :span="12">
-        <el-card class="chart-card" shadow="hover">
-          <template #header>
+      <a-col :span="12">
+        <a-card class="chart-card" hoverable>
+          <template #title>
             <div class="card-header">
               <span>各地区销售对比</span>
             </div>
           </template>
           <v-chart class="chart" :option="regionSalesOption" autoresize />
-        </el-card>
-      </el-col>
-    </el-row>
+        </a-card>
+      </a-col>
+    </a-row>
 
-    <el-row :gutter="20" class="charts-row">
-      <el-col :span="12">
-        <el-card class="chart-card" shadow="hover">
-          <template #header>
+    <a-row :gutter="20" class="charts-row">
+      <a-col :span="12">
+        <a-card class="chart-card" hoverable>
+          <template #title>
             <div class="card-header">
               <span>产品销售占比</span>
             </div>
           </template>
           <v-chart class="chart" :option="productSalesOption" autoresize />
-        </el-card>
-      </el-col>
+        </a-card>
+      </a-col>
       
-      <el-col :span="12">
-        <el-card class="chart-card" shadow="hover">
-          <template #header>
+      <a-col :span="12">
+        <a-card class="chart-card" hoverable>
+          <template #title>
             <div class="card-header">
               <span>客户购买频次</span>
             </div>
           </template>
           <v-chart class="chart" :option="customerPurchaseOption" autoresize />
-        </el-card>
-      </el-col>
-    </el-row>
+        </a-card>
+      </a-col>
+    </a-row>
   </div>
 </template>
 
@@ -116,7 +116,8 @@ import {
   ToolboxComponent
 } from 'echarts/components'
 import VChart from 'vue-echarts'
-import { ElMessage } from 'element-plus'
+import { Message } from '@arco-design/web-vue'
+import { IconTag, IconGift, IconUser, IconApps } from '@arco-design/web-vue/es/icon'
 
 use([
   CanvasRenderer,
@@ -154,8 +155,8 @@ const salesTrendOption = ref({
         type: 'linear',
         x: 0, y: 0, x2: 0, y2: 1,
         colorStops: [
-          { offset: 0, color: 'rgba(64, 158, 255, 0.3)' },
-          { offset: 1, color: 'rgba(64, 158, 255, 0.05)' }
+          { offset: 0, color: 'rgba(22, 93, 255, 0.3)' },
+          { offset: 1, color: 'rgba(22, 93, 255, 0.05)' }
         ]
       }
     }
@@ -173,7 +174,7 @@ const regionSalesOption = ref({
   series: [{
     data: [320, 302, 301, 334, 390, 330],
     type: 'bar',
-    itemStyle: { color: '#409EFF' }
+    itemStyle: { color: '#165dff' }
   }]
 })
 
@@ -220,8 +221,8 @@ const customerPurchaseOption = ref({
         type: 'linear',
         x: 0, y: 0, x2: 0, y2: 1,
         colorStops: [
-          { offset: 0, color: '#67C23A' },
-          { offset: 1, color: '#95D475' }
+          { offset: 0, color: '#00b42a' },
+          { offset: 1, color: '#7be188' }
         ]
       }
     }
@@ -241,7 +242,7 @@ const loadDashboardData = async () => {
       // 可以在这里更新图表数据
     }
   } catch (error) {
-    ElMessage.error('加载仪表盘数据失败')
+    Message.error('加载仪表盘数据失败')
   }
 }
 
@@ -260,9 +261,11 @@ onMounted(() => {
 }
 
 .metric-card {
-  display: flex;
-  align-items: center;
-  padding: 10px;
+  :deep(.arco-card-body) {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+  }
 }
 
 .metric-icon {
@@ -273,6 +276,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   margin-right: 16px;
+  color: #fff;
 }
 
 .metric-content {
@@ -282,13 +286,13 @@ onMounted(() => {
 .metric-value {
   font-size: 24px;
   font-weight: 600;
-  color: #303133;
+  color: var(--color-text-1);
   margin-bottom: 4px;
 }
 
 .metric-label {
   font-size: 14px;
-  color: #909399;
+  color: var(--color-text-3);
 }
 
 .charts-row {

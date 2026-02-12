@@ -49,8 +49,15 @@ public class NL2SQLController {
             
             // 构建上下文（支持多轮对话）
             Map<String, Object> context = new HashMap<>();
-            if (request.getHistory() != null) {
-                context.put("history", request.getHistory());
+            if (request.getHistory() != null && !request.getHistory().isEmpty()) {
+                // 将历史记录列表转换为字符串格式
+                StringBuilder historyBuilder = new StringBuilder();
+                for (Map<String, Object> msg : request.getHistory()) {
+                    String role = msg.get("role") != null ? msg.get("role").toString() : "";
+                    String content = msg.get("content") != null ? msg.get("content").toString() : "";
+                    historyBuilder.append(role).append(": ").append(content).append("\n");
+                }
+                context.put("history", historyBuilder.toString());
             }
             context.put("dataSourceId", dataQueryService.getCurrentDataSourceId());
             
@@ -193,37 +200,37 @@ public class NL2SQLController {
     public static class NL2SQLRequest {
         private String query;
         private String provider;
-        private String history;
+        private List<Map<String, Object>> history;
         private Long dataSourceId;
-        
+
         public String getQuery() {
             return query;
         }
-        
+
         public void setQuery(String query) {
             this.query = query;
         }
-        
+
         public String getProvider() {
             return provider;
         }
-        
+
         public void setProvider(String provider) {
             this.provider = provider;
         }
-        
-        public String getHistory() {
+
+        public List<Map<String, Object>> getHistory() {
             return history;
         }
-        
-        public void setHistory(String history) {
+
+        public void setHistory(List<Map<String, Object>> history) {
             this.history = history;
         }
-        
+
         public Long getDataSourceId() {
             return dataSourceId;
         }
-        
+
         public void setDataSourceId(Long dataSourceId) {
             this.dataSourceId = dataSourceId;
         }

@@ -1,115 +1,116 @@
 <template>
   <div class="sensitive-data-manage">
-    <el-card>
-      <template #header>
+    <a-card>
+      <template #title>
         <div class="card-header">
           <span>敏感数据管理</span>
           <div class="header-actions">
-            <el-select v-model="selectedDataSource" placeholder="选择数据源" @change="onDataSourceChange">
-              <el-option
+            <a-select v-model="selectedDataSource" placeholder="选择数据源" @change="onDataSourceChange" style="width: 200px;">
+              <a-option
                 v-for="ds in dataSources"
                 :key="ds.id"
-                :label="ds.name"
                 :value="ds.id"
-              />
-            </el-select>
-            <el-select v-model="selectedTable" placeholder="选择数据表" clearable @change="loadSensitiveColumns">
-              <el-option
+              >{{ ds.name }}</a-option>
+            </a-select>
+            <a-select v-model="selectedTable" placeholder="选择数据表" allow-clear @change="loadSensitiveColumns" style="width: 200px;">
+              <a-option
                 v-for="table in tables"
                 :key="table"
-                :label="table"
                 :value="table"
-              />
-            </el-select>
-            <el-button type="primary" @click="scanTable" :loading="scanning" :disabled="!selectedTable">
-              <el-icon><Search /></el-icon>
+              >{{ table }}</a-option>
+            </a-select>
+            <a-button type="primary" @click="scanTable" :loading="scanning" :disabled="!selectedTable">
+              <template #icon><icon-search /></template>
               扫描敏感数据
-            </el-button>
+            </a-button>
           </div>
         </div>
       </template>
 
       <!-- 概览统计 -->
-      <el-row :gutter="20" class="overview" v-if="overview">
-        <el-col :span="6">
-          <el-statistic title="敏感字段总数" :value="overview.totalSensitiveColumns || 0" />
-        </el-col>
-        <el-col :span="6">
-          <el-statistic title="已脱敏字段" :value="overview.maskedColumns || 0" />
-        </el-col>
-        <el-col :span="6">
-          <el-statistic title="涉及表数" :value="Object.keys(overview.tableDistribution || {}).length" />
-        </el-col>
-        <el-col :span="6">
-          <el-statistic title="敏感类型数" :value="Object.keys(overview.typeDistribution || {}).length" />
-        </el-col>
-      </el-row>
+      <a-row :gutter="20" class="overview" v-if="overview">
+        <a-col :span="6">
+          <a-statistic title="敏感字段总数" :value="overview.totalSensitiveColumns || 0" />
+        </a-col>
+        <a-col :span="6">
+          <a-statistic title="已脱敏字段" :value="overview.maskedColumns || 0" />
+        </a-col>
+        <a-col :span="6">
+          <a-statistic title="涉及表数" :value="Object.keys(overview.tableDistribution || {}).length" />
+        </a-col>
+        <a-col :span="6">
+          <a-statistic title="敏感类型数" :value="Object.keys(overview.typeDistribution || {}).length" />
+        </a-col>
+      </a-row>
 
       <!-- 敏感字段列表 -->
-      <el-table :data="sensitiveColumns" v-loading="loading" class="sensitive-table">
-        <el-table-column type="index" width="50" />
-        <el-table-column prop="tableName" label="表名" />
-        <el-table-column prop="columnName" label="字段名" />
-        <el-table-column prop="sensitiveType" label="敏感类型">
-          <template #default="{ row }">
-            <el-tag :type="getSensitiveTypeTag(row.sensitiveType)">
-              {{ getSensitiveTypeText(row.sensitiveType) }}
-            </el-tag>
+      <a-table :data="sensitiveColumns" :loading="loading" class="sensitive-table">
+        <a-table-column title="#" :width="50">
+          <template #cell="{ rowIndex }">{{ rowIndex + 1 }}</template>
+        </a-table-column>
+        <a-table-column title="表名" data-index="tableName" />
+        <a-table-column title="字段名" data-index="columnName" />
+        <a-table-column title="敏感类型">
+          <template #cell="{ record }">
+            <a-tag :color="getSensitiveTypeColor(record.sensitiveType)">
+              {{ getSensitiveTypeText(record.sensitiveType) }}
+            </a-tag>
           </template>
-        </el-table-column>
-        <el-table-column prop="detectionMethod" label="检测方式">
-          <template #default="{ row }">
-            <el-tag size="small" :type="row.detectionMethod === 'COLUMN_NAME' ? 'primary' : 'success'">
-              {{ row.detectionMethod === 'COLUMN_NAME' ? '字段名' : '内容采样' }}
-            </el-tag>
+        </a-table-column>
+        <a-table-column title="检测方式">
+          <template #cell="{ record }">
+            <a-tag size="small" :color="record.detectionMethod === 'COLUMN_NAME' ? 'arcoblue' : 'green'">
+              {{ record.detectionMethod === 'COLUMN_NAME' ? '字段名' : '内容采样' }}
+            </a-tag>
           </template>
-        </el-table-column>
-        <el-table-column prop="confidence" label="置信度">
-          <template #default="{ row }">
-            <el-progress :percentage="Math.round(row.confidence * 100)" />
+        </a-table-column>
+        <a-table-column title="置信度">
+          <template #cell="{ record }">
+            <a-progress :percent="Math.round(record.confidence * 100)" />
           </template>
-        </el-table-column>
-        <el-table-column prop="isMasked" label="脱敏状态">
-          <template #default="{ row }">
-            <el-switch
-              v-model="row.isMasked"
-              @change="updateMaskConfig(row)"
-              active-text="已脱敏"
-              inactive-text="未脱敏"
-            />
+        </a-table-column>
+        <a-table-column title="脱敏状态">
+          <template #cell="{ record }">
+            <a-switch
+              v-model="record.isMasked"
+              @change="updateMaskConfig(record)"
+            >
+              <template #checked>已脱敏</template>
+              <template #unchecked>未脱敏</template>
+            </a-switch>
           </template>
-        </el-table-column>
-        <el-table-column label="脱敏示例">
-          <template #default="{ row }">
-            <span class="mask-example">{{ getMaskExample(row.sensitiveType) }}</span>
+        </a-table-column>
+        <a-table-column title="脱敏示例">
+          <template #cell="{ record }">
+            <span class="mask-example">{{ getMaskExample(record.sensitiveType) }}</span>
           </template>
-        </el-table-column>
-        <el-table-column label="操作" width="120">
-          <template #default="{ row }">
-            <el-button type="danger" link @click="deleteColumn(row.id)">
-              <el-icon><Delete /></el-icon>
-            </el-button>
+        </a-table-column>
+        <a-table-column title="操作" :width="120">
+          <template #cell="{ record }">
+            <a-button type="text" status="danger" @click="deleteColumn(record.id)">
+              <template #icon><icon-delete /></template>
+            </a-button>
           </template>
-        </el-table-column>
-      </el-table>
+        </a-table-column>
+      </a-table>
 
       <!-- 类型分布图表 -->
-      <el-row :gutter="20" class="charts" v-if="overview?.typeDistribution">
-        <el-col :span="12">
+      <a-row :gutter="20" class="charts" v-if="overview?.typeDistribution">
+        <a-col :span="12">
           <div ref="typeChartRef" class="chart"></div>
-        </el-col>
-        <el-col :span="12">
+        </a-col>
+        <a-col :span="12">
           <div ref="tableChartRef" class="chart"></div>
-        </el-col>
-      </el-row>
-    </el-card>
+        </a-col>
+      </a-row>
+    </a-card>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Delete } from '@element-plus/icons-vue'
+import { Message, Modal } from '@arco-design/web-vue'
+import { IconSearch, IconDelete } from '@arco-design/web-vue/es/icon'
 import * as echarts from 'echarts'
 import request from '@/utils/request'
 
@@ -128,13 +129,13 @@ let tableChart = null
 
 // 敏感类型映射
 const sensitiveTypeMap = {
-  'PHONE': { text: '手机号', tag: 'primary' },
-  'ID_CARD': { text: '身份证号', tag: 'danger' },
-  'BANK_CARD': { text: '银行卡号', tag: 'warning' },
-  'EMAIL': { text: '邮箱', tag: 'success' },
-  'NAME': { text: '姓名', tag: 'info' },
-  'ADDRESS': { text: '地址', tag: 'info' },
-  'PASSWORD': { text: '密码', tag: 'danger' }
+  'PHONE': { text: '手机号', color: 'arcoblue' },
+  'ID_CARD': { text: '身份证号', color: 'red' },
+  'BANK_CARD': { text: '银行卡号', color: 'orange' },
+  'EMAIL': { text: '邮箱', color: 'green' },
+  'NAME': { text: '姓名', color: 'gray' },
+  'ADDRESS': { text: '地址', color: 'gray' },
+  'PASSWORD': { text: '密码', color: 'red' }
 }
 
 const maskExamples = {
@@ -159,7 +160,7 @@ const loadDataSources = async () => {
       onDataSourceChange()
     }
   } catch (error) {
-    ElMessage.error('加载数据源失败')
+    Message.error('加载数据源失败')
   }
 }
 
@@ -179,7 +180,7 @@ const onDataSourceChange = async () => {
     tables.value = res.data
     loadOverview()
   } catch (error) {
-    ElMessage.error('加载数据表失败')
+    Message.error('加载数据表失败')
   }
 }
 
@@ -209,7 +210,7 @@ const loadSensitiveColumns = async () => {
     const res = await request.get(url)
     sensitiveColumns.value = res.data
   } catch (error) {
-    ElMessage.error('加载敏感字段失败')
+    Message.error('加载敏感字段失败')
   } finally {
     loading.value = false
   }
@@ -224,11 +225,11 @@ const scanTable = async () => {
     await request.post(`/api/sensitive-data/scan/${selectedDataSource.value}`, {
       tableName: selectedTable.value
     })
-    ElMessage.success('扫描完成')
+    Message.success('扫描完成')
     loadSensitiveColumns()
     loadOverview()
   } catch (error) {
-    ElMessage.error('扫描失败')
+    Message.error('扫描失败')
   } finally {
     scanning.value = false
   }
@@ -240,32 +241,33 @@ const updateMaskConfig = async (row) => {
     await request.put(`/api/sensitive-data/config/${row.id}`, {
       isMasked: row.isMasked
     })
-    ElMessage.success('更新成功')
+    Message.success('更新成功')
   } catch (error) {
-    ElMessage.error('更新失败')
+    Message.error('更新失败')
     row.isMasked = !row.isMasked
   }
 }
 
 // 删除字段
 const deleteColumn = async (id) => {
-  try {
-    await ElMessageBox.confirm('确定删除此敏感字段标记吗？', '提示', {
-      type: 'warning'
-    })
-    await request.delete(`/api/sensitive-data/${id}`)
-    ElMessage.success('删除成功')
-    loadSensitiveColumns()
-    loadOverview()
-  } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+  Modal.confirm({
+    title: '确认删除',
+    content: '确定删除此敏感字段标记吗？',
+    onOk: async () => {
+      try {
+        await request.delete(`/api/sensitive-data/${id}`)
+        Message.success('删除成功')
+        loadSensitiveColumns()
+        loadOverview()
+      } catch (error) {
+        Message.error('删除失败')
+      }
     }
-  }
+  })
 }
 
-const getSensitiveTypeTag = (type) => {
-  return sensitiveTypeMap[type]?.tag || 'info'
+const getSensitiveTypeColor = (type) => {
+  return sensitiveTypeMap[type]?.color || 'gray'
 }
 
 const getSensitiveTypeText = (type) => {
@@ -327,7 +329,7 @@ const renderCharts = () => {
       series: [{
         type: 'bar',
         data: tableData.map(([, value]) => value),
-        itemStyle: { color: '#409eff' }
+        itemStyle: { color: '#165dff' }
       }]
     })
   }
@@ -359,17 +361,13 @@ onUnmounted(() => {
     .header-actions {
       display: flex;
       gap: 10px;
-
-      .el-select {
-        width: 200px;
-      }
     }
   }
 
   .overview {
     margin-bottom: 20px;
     padding: 20px;
-    background: #f5f7fa;
+    background: var(--color-fill-2);
     border-radius: 4px;
   }
 
@@ -377,7 +375,7 @@ onUnmounted(() => {
     margin-bottom: 20px;
 
     .mask-example {
-      color: #909399;
+      color: var(--color-text-3);
       font-family: monospace;
     }
   }

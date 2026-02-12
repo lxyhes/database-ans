@@ -1,130 +1,141 @@
 <template>
   <div class="metric-manage">
-    <el-card>
-      <template #header>
+    <a-card>
+      <template #title>
         <div class="card-header">
           <span>智能指标库</span>
-          <el-button type="primary" @click="showCreateDialog">
-            <el-icon><Plus /></el-icon>
+          <a-button type="primary" @click="showCreateDialog">
+            <template #icon><icon-plus /></template>
             新建指标
-          </el-button>
+          </a-button>
         </div>
       </template>
 
       <!-- 指标概览 -->
-      <el-row :gutter="20" class="overview">
-        <el-col :span="6" v-for="(metrics, category) in groupedMetrics" :key="category">
-          <el-card class="category-card">
-            <template #header>
-              <span>{{ category }}</span>
-              <el-tag size="small">{{ metrics.length }}个指标</el-tag>
+      <a-row :gutter="20" class="overview">
+        <a-col :span="6" v-for="(metrics, category) in groupedMetrics" :key="category">
+          <a-card class="category-card">
+            <template #title>
+              <div class="category-title">
+                <span>{{ category }}</span>
+                <a-tag size="small">{{ metrics.length }}个指标</a-tag>
+              </div>
             </template>
             <div class="metric-list">
               <div v-for="metric in metrics" :key="metric.id" class="metric-item" @click="viewMetric(metric)">
                 <span class="metric-name">{{ metric.name }}</span>
-                <el-tag size="small" :type="metric.isActive ? 'success' : 'info'">
+                <a-tag size="small" :color="metric.isActive ? 'green' : 'gray'">
                   {{ metric.isActive ? '启用' : '禁用' }}
-                </el-tag>
+                </a-tag>
               </div>
             </div>
-          </el-card>
-        </el-col>
-      </el-row>
+          </a-card>
+        </a-col>
+      </a-row>
 
       <!-- 指标列表 -->
-      <el-table :data="metrics" v-loading="loading" class="metric-table">
-        <el-table-column type="index" width="50" />
-        <el-table-column prop="name" label="指标名称" />
-        <el-table-column prop="code" label="指标编码" />
-        <el-table-column prop="category" label="分类" />
-        <el-table-column prop="tableName" label="数据表" />
-        <el-table-column prop="columnName" label="字段" />
-        <el-table-column prop="aggregationType" label="聚合方式">
-          <template #default="{ row }">
-            <el-tag size="small">{{ row.aggregationType }}</el-tag>
+      <a-table :data="metrics" :loading="loading" class="metric-table">
+        <a-table-column title="#" data-index="index" :width="50">
+          <template #cell="{ rowIndex }">{{ rowIndex + 1 }}</template>
+        </a-table-column>
+        <a-table-column title="指标名称" data-index="name" />
+        <a-table-column title="指标编码" data-index="code" />
+        <a-table-column title="分类" data-index="category" />
+        <a-table-column title="数据表" data-index="tableName" />
+        <a-table-column title="字段" data-index="columnName" />
+        <a-table-column title="聚合方式">
+          <template #cell="{ record }">
+            <a-tag size="small">{{ record.aggregationType }}</a-tag>
           </template>
-        </el-table-column>
-        <el-table-column prop="unit" label="单位" />
-        <el-table-column label="操作" width="200">
-          <template #default="{ row }">
-            <el-button type="primary" link @click="calculateMetric(row.id)">
-              <el-icon><VideoPlay /></el-icon>
-              计算
-            </el-button>
-            <el-button type="primary" link @click="viewTrend(row)">
-              <el-icon><TrendCharts /></el-icon>
-              趋势
-            </el-button>
-            <el-button type="primary" link @click="editMetric(row)">
-              <el-icon><Edit /></el-icon>
-            </el-button>
-            <el-button type="danger" link @click="deleteMetric(row.id)">
-              <el-icon><Delete /></el-icon>
-            </el-button>
+        </a-table-column>
+        <a-table-column title="单位" data-index="unit" />
+        <a-table-column title="操作" :width="200">
+          <template #cell="{ record }">
+            <a-space>
+              <a-button type="text" @click="calculateMetric(record.id)">
+                <template #icon><icon-play-circle /></template>
+                计算
+              </a-button>
+              <a-button type="text" @click="viewTrend(record)">
+                <template #icon><icon-dashboard /></template>
+                趋势
+              </a-button>
+              <a-button type="text" @click="editMetric(record)">
+                <template #icon><icon-edit /></template>
+              </a-button>
+              <a-button type="text" status="danger" @click="deleteMetric(record.id)">
+                <template #icon><icon-delete /></template>
+              </a-button>
+            </a-space>
           </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+        </a-table-column>
+      </a-table>
+    </a-card>
 
     <!-- 创建/编辑对话框 -->
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑指标' : '新建指标'" width="600px">
-      <el-form :model="form" label-width="100px" :rules="rules" ref="formRef">
-        <el-form-item label="指标名称" prop="name">
-          <el-input v-model="form.name" placeholder="请输入指标名称" />
-        </el-form-item>
-        <el-form-item label="指标编码" prop="code">
-          <el-input v-model="form.code" placeholder="唯一编码，如：total_sales" :disabled="isEdit" />
-        </el-form-item>
-        <el-form-item label="描述">
-          <el-input v-model="form.description" type="textarea" placeholder="指标描述" />
-        </el-form-item>
-        <el-form-item label="分类">
-          <el-select v-model="form.category" placeholder="选择分类" allow-create filterable style="width: 100%">
-            <el-option label="销售指标" value="销售指标" />
-            <el-option label="用户指标" value="用户指标" />
-            <el-option label="财务指标" value="财务指标" />
-            <el-option label="运营指标" value="运营指标" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="数据源" prop="dataSourceId">
-          <el-select v-model="form.dataSourceId" placeholder="选择数据源" style="width: 100%">
-            <el-option v-for="ds in dataSources" :key="ds.id" :label="ds.name" :value="ds.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="数据表" prop="tableName">
-          <el-input v-model="form.tableName" placeholder="数据表名" />
-        </el-form-item>
-        <el-form-item label="字段名" prop="columnName">
-          <el-input v-model="form.columnName" placeholder="字段名" />
-        </el-form-item>
-        <el-form-item label="聚合方式" prop="aggregationType">
-          <el-select v-model="form.aggregationType" style="width: 100%">
-            <el-option label="求和 (SUM)" value="SUM" />
-            <el-option label="计数 (COUNT)" value="COUNT" />
-            <el-option label="平均值 (AVG)" value="AVG" />
-            <el-option label="最大值 (MAX)" value="MAX" />
-            <el-option label="最小值 (MIN)" value="MIN" />
-            <el-option label="去重计数 (DISTINCT_COUNT)" value="DISTINCT_COUNT" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="过滤条件">
-          <el-input v-model="form.filterCondition" placeholder="如：status = 1" />
-        </el-form-item>
-        <el-form-item label="单位">
-          <el-input v-model="form.unit" placeholder="如：元、个、%" />
-        </el-form-item>
-        <el-form-item label="启用状态">
-          <el-switch v-model="form.isActive" active-text="启用" inactive-text="禁用" />
-        </el-form-item>
-      </el-form>
+    <a-modal v-model:visible="dialogVisible" :title="isEdit ? '编辑指标' : '新建指标'" width="600px">
+      <a-form :model="form" layout="vertical" ref="formRef">
+        <a-form-item label="指标名称" field="name" required>
+          <a-input v-model="form.name" placeholder="请输入指标名称" />
+        </a-form-item>
+        <a-form-item label="指标编码" field="code" required>
+          <a-input v-model="form.code" placeholder="唯一编码，如：total_sales" :disabled="isEdit" />
+        </a-form-item>
+        <a-form-item label="描述">
+          <a-textarea v-model="form.description" placeholder="指标描述" />
+        </a-form-item>
+        <a-form-item label="分类">
+          <a-select v-model="form.category" placeholder="选择分类" allow-create allow-search style="width: 100%">
+            <a-option value="销售指标">销售指标</a-option>
+            <a-option value="用户指标">用户指标</a-option>
+            <a-option value="财务指标">财务指标</a-option>
+            <a-option value="运营指标">运营指标</a-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="数据源" field="dataSourceId" required>
+          <a-select v-model="form.dataSourceId" placeholder="选择数据源" style="width: 100%">
+            <a-option v-for="ds in dataSources" :key="ds.id" :value="ds.id">{{ ds.name }}</a-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="数据表" field="tableName" required>
+          <a-input v-model="form.tableName" placeholder="数据表名" />
+        </a-form-item>
+        <a-form-item label="字段名" field="columnName" required>
+          <a-input v-model="form.columnName" placeholder="字段名" />
+        </a-form-item>
+        <a-form-item label="聚合方式" field="aggregationType" required>
+          <a-select v-model="form.aggregationType" style="width: 100%">
+            <a-option value="SUM">求和 (SUM)</a-option>
+            <a-option value="COUNT">计数 (COUNT)</a-option>
+            <a-option value="AVG">平均值 (AVG)</a-option>
+            <a-option value="MAX">最大值 (MAX)</a-option>
+            <a-option value="MIN">最小值 (MIN)</a-option>
+            <a-option value="DISTINCT_COUNT">去重计数 (DISTINCT_COUNT)</a-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="过滤条件">
+          <a-input v-model="form.filterCondition" placeholder="如：status = 1" />
+        </a-form-item>
+        <a-form-item label="单位">
+          <a-input v-model="form.unit" placeholder="如：元、个、%" />
+        </a-form-item>
+        <a-form-item label="启用状态">
+          <a-switch v-model="form.isActive">
+            <template #checked>启用</template>
+            <template #unchecked>禁用</template>
+          </a-switch>
+        </a-form-item>
+      </a-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveMetric" :loading="saving">保存</el-button>
+        <a-space>
+          <a-button @click="dialogVisible = false">取消</a-button>
+          <a-button type="primary" @click="saveMetric" :loading="saving">保存</a-button>
+        </a-space>
       </template>
-    </el-dialog>
+    </a-modal>
 
     <!-- 计算结果对话框 -->
-    <el-dialog v-model="resultVisible" title="指标计算结果" width="400px">
+    <a-modal v-model:visible="resultVisible" title="指标计算结果" width="400px">
       <div v-if="calcResult" class="calc-result">
         <div class="result-value">
           {{ formatValue(calcResult.value) }}
@@ -133,19 +144,19 @@
         <div class="result-name">{{ calcResult.metricName }}</div>
         <div class="result-code">{{ calcResult.metricCode }}</div>
       </div>
-    </el-dialog>
+    </a-modal>
 
     <!-- 趋势图对话框 -->
-    <el-dialog v-model="trendVisible" title="指标趋势" width="800px">
+    <a-modal v-model:visible="trendVisible" title="指标趋势" width="800px">
       <div ref="trendChartRef" class="trend-chart"></div>
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, VideoPlay, TrendCharts, Edit, Delete } from '@element-plus/icons-vue'
+import { Message, Modal } from '@arco-design/web-vue'
+import { IconPlus, IconPlayCircle, IconDashboard, IconEdit, IconDelete } from '@arco-design/web-vue/es/icon'
 import * as echarts from 'echarts'
 import request from '@/utils/request'
 
@@ -178,15 +189,6 @@ const form = ref({
   isActive: true
 })
 
-const rules = {
-  name: [{ required: true, message: '请输入指标名称', trigger: 'blur' }],
-  code: [{ required: true, message: '请输入指标编码', trigger: 'blur' }],
-  dataSourceId: [{ required: true, message: '请选择数据源', trigger: 'change' }],
-  tableName: [{ required: true, message: '请输入数据表名', trigger: 'blur' }],
-  columnName: [{ required: true, message: '请输入字段名', trigger: 'blur' }],
-  aggregationType: [{ required: true, message: '请选择聚合方式', trigger: 'change' }]
-}
-
 const loadMetrics = async () => {
   loading.value = true
   try {
@@ -194,7 +196,7 @@ const loadMetrics = async () => {
     metrics.value = res.data
     groupMetrics()
   } catch (error) {
-    ElMessage.error('加载指标失败')
+    Message.error('加载指标失败')
   } finally {
     loading.value = false
   }
@@ -205,7 +207,7 @@ const loadDataSources = async () => {
     const res = await request.get('/api/datasources')
     dataSources.value = res.data
   } catch (error) {
-    ElMessage.error('加载数据源失败')
+    Message.error('加载数据源失败')
   }
 }
 
@@ -237,7 +239,7 @@ const editMetric = (row) => {
 }
 
 const saveMetric = async () => {
-  const valid = await formRef.value.validate().catch(() => false)
+  const valid = await formRef.value.validate()
   if (!valid) return
 
   saving.value = true
@@ -247,11 +249,11 @@ const saveMetric = async () => {
     } else {
       await request.post('/api/metrics', form.value)
     }
-    ElMessage.success('保存成功')
+    Message.success('保存成功')
     dialogVisible.value = false
     loadMetrics()
   } catch (error) {
-    ElMessage.error('保存失败')
+    Message.error('保存失败')
   } finally {
     saving.value = false
   }
@@ -263,7 +265,7 @@ const calculateMetric = async (id) => {
     calcResult.value = res.data
     resultVisible.value = true
   } catch (error) {
-    ElMessage.error('计算失败')
+    Message.error('计算失败')
   }
 }
 
@@ -284,18 +286,22 @@ const renderTrendChart = async (metricId) => {
     const res = await request.get(`/api/metrics/${metricId}/trend`, {
       params: { timeField: 'created_at', days: 30 }
     })
-    const data = res.data
+    const data = res.data || []
+
+    if (!Array.isArray(data) || data.length === 0) {
+      return
+    }
 
     const option = {
       tooltip: { trigger: 'axis' },
       xAxis: {
         type: 'category',
-        data: data.map(d => d.date),
+        data: data.map(d => d?.date || '').filter(Boolean),
         axisLabel: { rotate: 45 }
       },
       yAxis: { type: 'value' },
       series: [{
-        data: data.map(d => d.value),
+        data: data.map(d => d?.value ?? 0),
         type: 'line',
         smooth: true,
         areaStyle: {}
@@ -303,21 +309,24 @@ const renderTrendChart = async (metricId) => {
     }
     trendChart.setOption(option)
   } catch (error) {
-    ElMessage.error('加载趋势失败')
+    Message.error('加载趋势失败')
   }
 }
 
 const deleteMetric = async (id) => {
-  try {
-    await ElMessageBox.confirm('确定删除此指标吗？', '提示', { type: 'warning' })
-    await request.delete(`/api/metrics/${id}`)
-    ElMessage.success('删除成功')
-    loadMetrics()
-  } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+  Modal.confirm({
+    title: '确认删除',
+    content: '确定删除此指标吗？',
+    onOk: async () => {
+      try {
+        await request.delete(`/api/metrics/${id}`)
+        Message.success('删除成功')
+        loadMetrics()
+      } catch (error) {
+        Message.error('删除失败')
+      }
     }
-  }
+  })
 }
 
 const viewMetric = (metric) => {
@@ -357,6 +366,12 @@ onUnmounted(() => {
     margin-bottom: 20px;
 
     .category-card {
+      .category-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
       .metric-list {
         max-height: 200px;
         overflow-y: auto;
@@ -366,11 +381,11 @@ onUnmounted(() => {
           justify-content: space-between;
           align-items: center;
           padding: 8px 0;
-          border-bottom: 1px solid #ebeef5;
+          border-bottom: 1px solid var(--color-neutral-3);
           cursor: pointer;
 
           &:hover {
-            background: #f5f7fa;
+            background: var(--color-fill-2);
           }
 
           .metric-name {
@@ -392,24 +407,24 @@ onUnmounted(() => {
     .result-value {
       font-size: 48px;
       font-weight: bold;
-      color: #409eff;
+      color: rgb(var(--primary-6));
 
       .result-unit {
         font-size: 20px;
-        color: #666;
+        color: var(--color-text-2);
         margin-left: 10px;
       }
     }
 
     .result-name {
       font-size: 18px;
-      color: #333;
+      color: var(--color-text-1);
       margin-top: 10px;
     }
 
     .result-code {
       font-size: 14px;
-      color: #999;
+      color: var(--color-text-3);
       margin-top: 5px;
     }
   }

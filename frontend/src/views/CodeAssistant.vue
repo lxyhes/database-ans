@@ -1,50 +1,53 @@
 <template>
   <div class="code-assistant-page">
-    <el-row :gutter="20">
-      <el-col :span="12">
-        <el-card shadow="hover">
-          <template #header>
+    <a-row :gutter="20">
+      <a-col :span="12">
+        <a-card hoverable>
+          <template #title>
             <div class="card-header">
               <span>代码编辑器</span>
-              <el-select v-model="selectedAction" size="small" style="width: 120px;">
-                <el-option label="代码生成" value="generate" />
-                <el-option label="代码分析" value="analyze" />
-                <el-option label="代码优化" value="optimize" />
-                <el-option label="代码解释" value="explain" />
-                <el-option label="代码修复" value="fix" />
-              </el-select>
+              <a-select v-model="selectedAction" size="small" style="width: 120px;">
+                <a-option value="generate">代码生成</a-option>
+                <a-option value="analyze">代码分析</a-option>
+                <a-option value="optimize">代码优化</a-option>
+                <a-option value="explain">代码解释</a-option>
+                <a-option value="fix">代码修复</a-option>
+              </a-select>
             </div>
           </template>
 
-          <el-input
+          <a-textarea
             v-model="codeInput"
-            type="textarea"
             :rows="20"
             placeholder="在此输入代码或描述..."
             class="code-editor"
             :class="{ 'has-error': hasError }"
+            allow-clear
           />
 
           <div class="editor-actions">
-            <el-button type="primary" :icon="MagicStick" :loading="processing" @click="processCode">
+            <a-button type="primary" :loading="processing" @click="processCode">
+              <template #icon><icon-bulb /></template>
               {{ actionButtonText }}
-            </el-button>
-            <el-button :icon="DocumentCopy" @click="copyCode">
+            </a-button>
+            <a-button @click="copyCode">
+              <template #icon><icon-copy /></template>
               复制
-            </el-button>
-            <el-button :icon="Delete" @click="clearCode">
+            </a-button>
+            <a-button @click="clearCode">
+              <template #icon><icon-delete /></template>
               清空
-            </el-button>
+            </a-button>
           </div>
-        </el-card>
-      </el-col>
+        </a-card>
+      </a-col>
 
-      <el-col :span="12">
-        <el-card shadow="hover" class="result-card">
-          <template #header>
+      <a-col :span="12">
+        <a-card hoverable class="result-card">
+          <template #title>
             <div class="card-header">
               <span>处理结果</span>
-              <el-tag v-if="resultType" :type="resultType">{{ resultTypeText }}</el-tag>
+              <a-tag v-if="resultType" :color="resultType">{{ resultTypeText }}</a-tag>
             </div>
           </template>
 
@@ -53,41 +56,41 @@
             <div v-else v-html="formatResult(result)"></div>
           </div>
 
-          <el-empty v-else description="等待处理...">
+          <a-empty v-else description="等待处理...">
             <template #description>
               <p>在左侧输入代码或描述</p>
-              <p style="font-size: 12px; color: #909399; margin-top: 8px;">
+              <p style="font-size: 12px; color: var(--color-text-3); margin-top: 8px;">
                 选择功能后点击处理按钮
               </p>
             </template>
-          </el-empty>
-        </el-card>
-      </el-col>
-    </el-row>
+          </a-empty>
+        </a-card>
+      </a-col>
+    </a-row>
 
     <!-- 代码模板 -->
-    <el-card shadow="hover" class="templates-card">
-      <template #header>
+    <a-card hoverable class="templates-card">
+      <template #title>
         <span>代码模板</span>
       </template>
       <div class="templates-list">
-        <el-button
+        <a-button
           v-for="template in codeTemplates"
           :key="template.name"
           size="small"
           @click="loadTemplate(template)"
         >
           {{ template.name }}
-        </el-button>
+        </a-button>
       </div>
-    </el-card>
+    </a-card>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { MagicStick, DocumentCopy, Delete } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { IconBulb, IconCopy, IconDelete } from '@arco-design/web-vue/es/icon'
+import { Message } from '@arco-design/web-vue'
 
 const codeInput = ref('')
 const selectedAction = ref('generate')
@@ -115,7 +118,7 @@ const resultTypeText = computed(() => {
   const map: Record<string, string> = {
     'success': '成功',
     'warning': '警告',
-    'danger': '错误',
+    'error': '错误',
     'info': '信息'
   }
   return map[resultType.value] || ''
@@ -130,7 +133,7 @@ const codeTemplates = [
 
 const processCode = async () => {
   if (!codeInput.value.trim()) {
-    ElMessage.warning('请输入代码或描述')
+    Message.warning('请输入代码或描述')
     return
   }
 
@@ -163,16 +166,16 @@ const processCode = async () => {
     if (response.success) {
       result.value = response.data.result || response.data
       resultType.value = 'success'
-      ElMessage.success('处理完成')
+      Message.success('处理完成')
     } else {
       result.value = response.message || '处理失败'
-      resultType.value = 'danger'
-      ElMessage.error('处理失败')
+      resultType.value = 'error'
+      Message.error('处理失败')
     }
   } catch (error) {
     result.value = '处理过程出错，请稍后重试'
-    resultType.value = 'danger'
-    ElMessage.error('处理过程出错')
+    resultType.value = 'error'
+    Message.error('处理过程出错')
   } finally {
     processing.value = false
   }
@@ -180,7 +183,7 @@ const processCode = async () => {
 
 const copyCode = () => {
   navigator.clipboard.writeText(codeInput.value).then(() => {
-    ElMessage.success('已复制到剪贴板')
+    Message.success('已复制到剪贴板')
   })
 }
 
@@ -222,7 +225,7 @@ const formatResult = (text: string) => {
 }
 
 .has-error :deep(textarea) {
-  border-color: #f56c6c;
+  border-color: rgb(var(--danger-6));
 }
 
 .editor-actions {
