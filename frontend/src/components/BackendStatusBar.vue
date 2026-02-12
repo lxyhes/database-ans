@@ -43,10 +43,6 @@ const handleReconnect = async () => {
 
 <style scoped lang="scss">
 .backend-status-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
   height: 40px;
   background: linear-gradient(135deg, #f56c6c 0%, #e6a23c 100%);
   color: white;
@@ -56,6 +52,7 @@ const handleReconnect = async () => {
   padding: 0 20px;
   z-index: 9999;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
 
   .status-content {
     display: flex;

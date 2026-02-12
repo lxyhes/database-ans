@@ -159,6 +159,17 @@ const checkConnection = async () => {
 <style scoped>
 .app-container {
   height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+:deep(.el-container) {
+  flex: 1;
+  overflow: hidden;
+}
+
+:deep(.el-main) {
+  overflow-y: auto;
 }
 
 .sidebar {
