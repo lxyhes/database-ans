@@ -8,10 +8,8 @@ import java.util.List;
 
 @Repository
 public interface ReportInstanceRepository extends JpaRepository<ReportInstance, Long> {
-
-    List<ReportInstance> findByTemplateIdOrderByExecuteTimeDesc(Long templateId);
-
-    List<ReportInstance> findByTemplateIdAndStatusOrderByExecuteTimeDesc(Long templateId, ReportInstance.ExecuteStatus status);
-
-    long countByTemplateId(Long templateId);
+    
+    List<ReportInstance> findByDataSourceIdOrderByCreatedAtDesc(Long dataSourceId);
+    
+    List<ReportInstance> findAllByOrderByCreatedAtDesc();
 }

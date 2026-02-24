@@ -103,6 +103,36 @@ const routes: RouteRecordRaw[] = [
     name: 'DataStory',
     component: () => import('../views/DataStory.vue'),
     meta: { title: '数据故事' }
+  },
+  {
+    path: '/alerts',
+    name: 'Alerts',
+    component: () => import('../views/AlertMonitor.vue'),
+    meta: { title: '告警监控' }
+  },
+  {
+    path: '/report-generator',
+    name: 'ReportGenerator',
+    component: () => import('../views/ReportGenerator.vue'),
+    meta: { title: '一键报告' }
+  },
+  {
+    path: '/search',
+    name: 'GlobalSearch',
+    component: () => import('../views/GlobalSearch.vue'),
+    meta: { title: '全局搜索' }
+  },
+  {
+    path: '/health',
+    name: 'DataHealth',
+    component: () => import('../views/DataHealth.vue'),
+    meta: { title: '数据健康' }
+  },
+  {
+    path: '/assistant',
+    name: 'SmartAssistant',
+    component: () => import('../views/SmartAssistant.vue'),
+    meta: { title: '智能助手' }
   }
 ]
 

@@ -1,10 +1,8 @@
 <template>
   <div class="app-container">
-    <!-- 后端状态提示条 -->
     <BackendStatusBar />
     
     <a-layout class="main-layout">
-      <!-- 侧边栏 -->
       <a-layout-sider
         :width="240"
         :collapsed-width="64"
@@ -48,6 +46,31 @@
             <a-menu-item key="/data-story">数据故事</a-menu-item>
           </a-sub-menu>
           
+          <a-menu-item key="/alerts">
+            <template #icon><icon-exclamation-circle /></template>
+            告警监控
+          </a-menu-item>
+          
+          <a-menu-item key="/report-generator">
+            <template #icon><icon-file /></template>
+            一键报告
+          </a-menu-item>
+          
+          <a-menu-item key="/search">
+            <template #icon><icon-search /></template>
+            全局搜索
+          </a-menu-item>
+          
+          <a-menu-item key="/health">
+            <template #icon><icon-heart /></template>
+            数据健康
+          </a-menu-item>
+          
+          <a-menu-item key="/assistant">
+            <template #icon><icon-robot /></template>
+            智能助手
+          </a-menu-item>
+          
           <a-menu-item key="/history">
             <template #icon><icon-history /></template>
             查询历史
@@ -59,7 +82,7 @@
           </a-menu-item>
           
           <a-sub-menu key="/ai">
-            <template #icon><icon-robot /></template>
+            <template #icon><icon-bulb /></template>
             <template #title>AI 助手</template>
             <a-menu-item key="/ai/iflow">iFlow AI</a-menu-item>
             <a-menu-item key="/ai/code">代码助手</a-menu-item>
@@ -72,7 +95,6 @@
         </a-menu>
       </a-layout-sider>
 
-      <!-- 主内容区 -->
       <a-layout>
         <a-layout-header class="header">
           <div class="header-left">
@@ -112,6 +134,11 @@ import {
   IconRobot,
   IconSettings,
   IconLink,
+  IconExclamationCircle,
+  IconFile,
+  IconSearch,
+  IconHeart,
+  IconBulb
 } from '@arco-design/web-vue/es/icon'
 import Breadcrumb from './components/Breadcrumb.vue'
 import BackendStatusBar from './components/BackendStatusBar.vue'
