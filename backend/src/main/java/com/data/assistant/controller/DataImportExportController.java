@@ -17,7 +17,7 @@ import java.util.Map;
  * 数据导入导出控制器
  */
 @RestController
-@RequestMapping("/api/data")
+@RequestMapping("/api/data-io")
 @CrossOrigin(origins = "*")
 public class DataImportExportController {
 

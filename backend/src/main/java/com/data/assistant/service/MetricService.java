@@ -3,11 +3,10 @@ package com.data.assistant.service;
 import com.data.assistant.model.Metric;
 import com.data.assistant.repository.MetricRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.sql.DataSource;
-import java.sql.*;
 import java.util.*;
 
 @Service
@@ -17,7 +16,10 @@ public class MetricService {
     private MetricRepository metricRepository;
 
     @Autowired
-    private javax.sql.DataSource jdbcDataSource;
+    private JdbcTemplate jdbcTemplate;
+    
+    @Autowired
+    private DynamicDataSourceService dynamicDataSourceService;
 
     @Transactional
     public Metric createMetric(Metric metric) {
@@ -61,6 +63,10 @@ public class MetricService {
     public Map<String, Object> calculateMetric(Long metricId) throws Exception {
         Metric metric = getMetric(metricId);
 
+        if (metric.getDataSourceId() != null) {
+            dynamicDataSourceService.switchDataSource(metric.getDataSourceId());
+        }
+
         String sql = buildMetricSql(metric);
 
         Map<String, Object> result = new HashMap<>();
@@ -68,14 +74,13 @@ public class MetricService {
         result.put("metricName", metric.getName());
         result.put("metricCode", metric.getCode());
         result.put("unit", metric.getUnit());
+        result.put("dataSourceId", metric.getDataSourceId());
 
-        try (Connection connection = jdbcDataSource.getConnection();
-             Statement stmt = connection.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
-            if (rs.next()) {
-                result.put("value", rs.getObject(1));
-            }
+        try {
+            Object value = jdbcTemplate.queryForObject(sql, Object.class);
+            result.put("value", value);
+        } catch (Exception e) {
+            result.put("error", e.getMessage());
         }
 
         return result;
@@ -135,6 +140,11 @@ public class MetricService {
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getMetricTrend(Long metricId, String timeField, int days) throws Exception {
         Metric metric = getMetric(metricId);
+        
+        if (metric.getDataSourceId() != null) {
+            dynamicDataSourceService.switchDataSource(metric.getDataSourceId());
+        }
+        
         List<Map<String, Object>> trend = new ArrayList<>();
 
         String sql = String.format(
@@ -143,16 +153,16 @@ public class MetricService {
             metric.getTableName(), timeField, days, timeField
         );
 
-        try (Connection connection = jdbcDataSource.getConnection();
-             Statement stmt = connection.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
-            while (rs.next()) {
+        try {
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
+            for (Map<String, Object> row : rows) {
                 Map<String, Object> point = new HashMap<>();
-                point.put("date", rs.getDate("date"));
-                point.put("value", rs.getObject("value"));
+                point.put("date", row.get("date"));
+                point.put("value", row.get("value"));
                 trend.add(point);
             }
+        } catch (Exception e) {
+            throw new RuntimeException("获取指标趋势失败: " + e.getMessage());
         }
 
         return trend;

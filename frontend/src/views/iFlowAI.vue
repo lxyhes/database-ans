@@ -118,6 +118,9 @@ import { ref, nextTick } from 'vue'
 import { IconSend } from '@arco-design/web-vue/es/icon'
 import { Message } from '@arco-design/web-vue'
 import MarkdownRenderer from '../components/MarkdownRenderer.vue'
+import axios from 'axios'
+
+const API_BASE = 'http://localhost:9090/api/iflow'
 
 const messages = ref<any[]>([
   {
@@ -161,7 +164,6 @@ const sendMessage = async () => {
   inputMessage.value = ''
   loading.value = true
 
-  // 添加加载消息
   messages.value.push({
     type: 'loading',
     time: new Date()
@@ -170,16 +172,47 @@ const sendMessage = async () => {
   await scrollToBottom()
 
   try {
-    const result = await window.electronAPI.iflowQuery(userMsg, selectedFunction.value)
+    let endpoint = '/query'
+    let requestBody: any = {}
     
-    // 移除加载消息
+    switch (selectedFunction.value) {
+      case 'query':
+        endpoint = '/query'
+        requestBody = { naturalLanguageQuery: userMsg }
+        break
+      case 'analyze':
+        endpoint = '/analyze'
+        requestBody = { dataContext: '', question: userMsg }
+        break
+      case 'generate-sql':
+        endpoint = '/generate-sql'
+        requestBody = { schema: '', naturalLanguageQuery: userMsg }
+        break
+      case 'generate-code':
+        endpoint = '/generate-code'
+        requestBody = { description: userMsg, language: 'java' }
+        break
+      case 'explain-code':
+        endpoint = '/explain-code'
+        requestBody = { code: userMsg }
+        break
+      case 'insights':
+        endpoint = '/insights'
+        requestBody = { dataSummary: userMsg }
+        break
+      default:
+        endpoint = '/query'
+        requestBody = { naturalLanguageQuery: userMsg }
+    }
+    
+    const response = await axios.post(`${API_BASE}${endpoint}`, requestBody)
+    
     messages.value.pop()
 
-    if (result.success) {
-      // 处理响应数据，提取实际内容
-      let content = result.data
-      if (typeof result.data === 'object' && result.data !== null) {
-        content = result.data.result || result.data.response || result.data.message || JSON.stringify(result.data)
+    if (response.data) {
+      let content = response.data.result || response.data
+      if (typeof content === 'object') {
+        content = JSON.stringify(content, null, 2)
       }
       messages.value.push({
         type: 'ai',
@@ -189,15 +222,15 @@ const sendMessage = async () => {
     } else {
       messages.value.push({
         type: 'ai',
-        content: '抱歉，处理请求时出现错误：' + result.message,
+        content: '抱歉，处理请求时出现错误',
         time: new Date()
       })
     }
-  } catch (error) {
+  } catch (error: any) {
     messages.value.pop()
     messages.value.push({
       type: 'ai',
-      content: '抱歉，服务暂时不可用，请稍后重试。',
+      content: '抱歉，服务暂时不可用，请稍后重试。' + (error.response?.data?.message || error.message),
       time: new Date()
     })
   } finally {

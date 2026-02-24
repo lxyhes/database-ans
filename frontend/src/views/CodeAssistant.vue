@@ -91,6 +91,9 @@
 import { ref, computed } from 'vue'
 import { IconBulb, IconCopy, IconDelete } from '@arco-design/web-vue/es/icon'
 import { Message } from '@arco-design/web-vue'
+import axios from 'axios'
+
+const API_BASE = 'http://localhost:9090/api/qwen-code'
 
 const codeInput = ref('')
 const selectedAction = ref('generate')
@@ -161,19 +164,19 @@ const processCode = async () => {
         break
     }
 
-    const response = await window.electronAPI.codeAssistant(selectedAction.value, data)
+    const response = await axios.post(`${API_BASE}/${selectedAction.value}`, data)
     
-    if (response.success) {
-      result.value = response.data.result || response.data
+    if (response.data) {
+      result.value = typeof response.data === 'string' ? response.data : JSON.stringify(response.data, null, 2)
       resultType.value = 'success'
       Message.success('处理完成')
     } else {
-      result.value = response.message || '处理失败'
+      result.value = '处理失败'
       resultType.value = 'error'
       Message.error('处理失败')
     }
-  } catch (error) {
-    result.value = '处理过程出错，请稍后重试'
+  } catch (error: any) {
+    result.value = '处理过程出错: ' + (error.response?.data?.message || error.message)
     resultType.value = 'error'
     Message.error('处理过程出错')
   } finally {

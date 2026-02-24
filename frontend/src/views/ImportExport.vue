@@ -94,6 +94,9 @@
 import { ref } from 'vue'
 import { IconUpload, IconDownload } from '@arco-design/web-vue/es/icon'
 import { Message } from '@arco-design/web-vue'
+import axios from 'axios'
+
+const API_BASE = 'http://localhost:9090/api/data-io'
 
 const importForm = ref({
   tableName: '',
@@ -130,7 +133,6 @@ const importData = async () => {
   progressStatus.value = 'normal'
   progressText.value = '准备导入...'
 
-  // 模拟进度
   const interval = setInterval(() => {
     if (progress.value < 90) {
       progress.value += 10
@@ -144,26 +146,31 @@ const importData = async () => {
     formData.append('file', importForm.value.file)
     formData.append('tableName', importForm.value.tableName || 'imported_data')
 
-    const result = await window.electronAPI.importFile(formData)
+    const isCSV = importForm.value.file.name.toLowerCase().endsWith('.csv')
+    const endpoint = isCSV ? '/import/csv' : '/import/excel'
+    
+    const response = await axios.post(`${API_BASE}${endpoint}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
     
     clearInterval(interval)
     progress.value = 100
     progressStatus.value = 'success'
     progressText.value = '导入完成！'
 
-    if (result.success) {
-      Message.success('数据导入成功')
+    if (response.data.success) {
+      Message.success(`数据导入成功，共 ${response.data.rows || 0} 条记录`)
       setTimeout(() => {
         progressVisible.value = false
       }, 1500)
     } else {
-      Message.error(result.message || '导入失败')
+      Message.error(response.data.message || '导入失败')
     }
-  } catch (error) {
+  } catch (error: any) {
     clearInterval(interval)
     progressStatus.value = 'error'
     progressText.value = '导入失败'
-    Message.error('导入过程出错')
+    Message.error('导入过程出错: ' + (error.response?.data?.message || error.message))
   } finally {
     importing.value = false
   }
@@ -177,17 +184,35 @@ const exportData = async () => {
 
   exporting.value = true
   try {
-    const result = await window.electronAPI.exportData(
-      exportForm.value.sql,
-      exportForm.value.format as 'excel' | 'csv'
-    )
-    if (result.success) {
-      Message.success('导出成功')
-    } else {
-      Message.error(result.message || '导出失败')
-    }
-  } catch (error) {
-    Message.error('导出过程出错')
+    const endpoint = exportForm.value.format === 'csv' ? '/export/csv' : '/export/excel'
+    
+    const response = await axios.post(`${API_BASE}${endpoint}`, {
+      sql: exportForm.value.sql,
+      fileName: 'export'
+    }, {
+      responseType: 'blob'
+    })
+
+    const blob = new Blob([response.data], {
+      type: exportForm.value.format === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    })
+    
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    
+    const ext = exportForm.value.format === 'csv' ? 'csv' : 'xlsx'
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+    link.download = `export_${timestamp}.${ext}`
+    
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+    
+    Message.success('导出成功')
+  } catch (error: any) {
+    Message.error('导出过程出错: ' + (error.response?.data?.message || error.message))
   } finally {
     exporting.value = false
   }

@@ -38,6 +38,9 @@ public class AlertService {
     @Autowired
     private DynamicDataSourceService dynamicDataSourceService;
     
+    @Autowired
+    private NotificationService notificationService;
+    
     public List<AlertRule> getAllRules() {
         return ruleRepository.findAll();
     }
@@ -377,52 +380,11 @@ public class AlertService {
     
     private void sendNotifications(AlertRule rule, AlertRecord record) {
         if (rule.getAlertChannels() == null || rule.getAlertChannels().isEmpty()) {
+            logger.info("未配置告警通知渠道");
             return;
         }
         
-        String[] channels = rule.getAlertChannels().split(",");
-        Map<String, String> notifyStatus = new HashMap<>();
-        
-        for (String channel : channels) {
-            try {
-                switch (channel.trim().toUpperCase()) {
-                    case "EMAIL":
-                        sendEmailNotification(rule, record);
-                        notifyStatus.put("EMAIL", "SENT");
-                        break;
-                    case "WECHAT":
-                        sendWechatNotification(rule, record);
-                        notifyStatus.put("WECHAT", "SENT");
-                        break;
-                    case "DINGTALK":
-                        sendDingtalkNotification(rule, record);
-                        notifyStatus.put("DINGTALK", "SENT");
-                        break;
-                }
-            } catch (Exception e) {
-                notifyStatus.put(channel.trim().toUpperCase(), "FAILED: " + e.getMessage());
-                logger.error("发送通知失败: {} - {}", channel, e.getMessage());
-            }
-        }
-        
-        try {
-            record.setNotifyStatus(objectMapper.writeValueAsString(notifyStatus));
-            recordRepository.save(record);
-        } catch (Exception e) {
-            logger.error("保存通知状态失败", e);
-        }
-    }
-    
-    private void sendEmailNotification(AlertRule rule, AlertRecord record) {
-        logger.info("发送邮件通知: {} -> {}", record.getTitle(), rule.getAlertReceivers());
-    }
-    
-    private void sendWechatNotification(AlertRule rule, AlertRecord record) {
-        logger.info("发送企业微信通知: {}", record.getTitle());
-    }
-    
-    private void sendDingtalkNotification(AlertRule rule, AlertRecord record) {
-        logger.info("发送钉钉通知: {}", record.getTitle());
+        notificationService.sendAlertNotification(rule, record);
     }
     
     public List<AlertRecord> getRecentAlerts(int hours) {

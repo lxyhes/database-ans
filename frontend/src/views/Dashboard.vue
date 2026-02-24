@@ -94,6 +94,9 @@ import {
 import VChart from 'vue-echarts'
 import { Message } from '@arco-design/web-vue'
 import { IconTag, IconGift, IconUser, IconApps } from '@arco-design/web-vue/es/icon'
+import axios from 'axios'
+
+const API_BASE = 'http://localhost:9090/api'
 
 use([
   CanvasRenderer,
@@ -207,11 +210,37 @@ const formatNumber = (num: number) => {
 
 const loadDashboardData = async () => {
   try {
-    const result = await window.electronAPI.getDashboardData()
-    if (result.success) {
-      metrics.value = result.data.metrics || metrics.value
+    const response = await axios.get(`${API_BASE}/visualization/dashboard`)
+    if (response.data) {
+      const keyMetrics = response.data.keyMetrics || {}
+      metrics.value = {
+        totalSales: keyMetrics.totalSales || 0,
+        orderCount: keyMetrics.orderCount || 0,
+        customerCount: keyMetrics.customerCount || 0,
+        productCount: keyMetrics.productCount || 0
+      }
+      
+      if (response.data.salesTrend) {
+        salesTrendOption.value.xAxis.data = response.data.salesTrend.dates || salesTrendOption.value.xAxis.data
+        salesTrendOption.value.series[0].data = response.data.salesTrend.values || salesTrendOption.value.series[0].data
+      }
+      
+      if (response.data.regionSales) {
+        regionSalesOption.value.xAxis.data = response.data.regionSales.regions || regionSalesOption.value.xAxis.data
+        regionSalesOption.value.series[0].data = response.data.regionSales.values || regionSalesOption.value.series[0].data
+      }
+      
+      if (response.data.productSales) {
+        productSalesOption.value.series[0].data = response.data.productSales || productSalesOption.value.series[0].data
+      }
+      
+      if (response.data.customerPurchase) {
+        customerPurchaseOption.value.xAxis.data = response.data.customerPurchase.categories || customerPurchaseOption.value.xAxis.data
+        customerPurchaseOption.value.series[0].data = response.data.customerPurchase.values || customerPurchaseOption.value.series[0].data
+      }
     }
   } catch (error) {
+    console.error('加载仪表盘数据失败:', error)
     Message.error('加载仪表盘数据失败')
   }
 }

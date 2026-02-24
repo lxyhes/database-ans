@@ -1,5 +1,7 @@
 package com.data.assistant.service;
 
+import com.data.assistant.model.Conversation;
+import com.data.assistant.model.ConversationMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +24,9 @@ public class AssistantService {
     @Autowired
     private NaturalLanguageProcessor nlProcessor;
     
+    @Autowired
+    private ConversationService conversationService;
+    
     public Map<String, Object> processMessage(String message, Long conversationId, Long dataSourceId) {
         Map<String, Object> result = new HashMap<>();
         
@@ -29,6 +34,18 @@ public class AssistantService {
             if (dataSourceId != null) {
                 dynamicDataSourceService.switchDataSource(dataSourceId);
             }
+            
+            Conversation conversation = null;
+            if (conversationId != null) {
+                conversation = conversationService.getConversation(String.valueOf(conversationId))
+                    .orElse(null);
+            }
+            
+            if (conversation == null) {
+                conversation = conversationService.createConversation(dataSourceId, "assistant", "智能助手对话");
+            }
+            
+            conversationService.saveUserMessage(conversation.getSessionId(), message);
             
             String sqlQuery = nlProcessor.parseNaturalLanguageToSQL(message);
             result.put("sqlQuery", sqlQuery);
@@ -44,6 +61,17 @@ public class AssistantService {
             
             String response = generateResponse(message, data, insight);
             result.put("message", response);
+            
+            result.put("conversationId", conversation.getId());
+            result.put("sessionId", conversation.getSessionId());
+            
+            String queryResultJson = data.isEmpty() ? "[]" : data.toString();
+            conversationService.saveAssistantMessage(
+                conversation.getSessionId(), 
+                response, 
+                sqlQuery, 
+                queryResultJson
+            );
             
             result.put("success", true);
             
@@ -178,13 +206,57 @@ public class AssistantService {
     }
     
     public List<Map<String, Object>> getConversations() {
-        return new ArrayList<>();
+        List<Map<String, Object>> result = new ArrayList<>();
+        try {
+            List<Conversation> conversations = conversationService.getActiveConversations(null);
+            for (Conversation conv : conversations) {
+                Map<String, Object> convMap = new HashMap<>();
+                convMap.put("id", conv.getId());
+                convMap.put("sessionId", conv.getSessionId());
+                convMap.put("title", conv.getTitle());
+                convMap.put("dataSourceId", conv.getDataSourceId());
+                convMap.put("provider", conv.getProvider());
+                convMap.put("createdAt", conv.getCreatedAt());
+                convMap.put("updatedAt", conv.getUpdatedAt());
+                result.add(convMap);
+            }
+        } catch (Exception e) {
+            logger.error("获取对话列表失败: {}", e.getMessage());
+        }
+        return result;
     }
     
     public List<Map<String, Object>> getConversationMessages(Long conversationId) {
-        return new ArrayList<>();
+        List<Map<String, Object>> result = new ArrayList<>();
+        try {
+            if (conversationId == null) {
+                return result;
+            }
+            List<ConversationMessage> messages = conversationService.getConversationHistory(String.valueOf(conversationId));
+            for (ConversationMessage msg : messages) {
+                Map<String, Object> msgMap = new HashMap<>();
+                msgMap.put("id", msg.getId());
+                msgMap.put("type", msg.getMessageType().name());
+                msgMap.put("content", msg.getContent());
+                msgMap.put("generatedSql", msg.getGeneratedSql());
+                msgMap.put("queryResult", msg.getQueryResult());
+                msgMap.put("sequence", msg.getSequence());
+                msgMap.put("createdAt", msg.getCreatedAt());
+                result.add(msgMap);
+            }
+        } catch (Exception e) {
+            logger.error("获取对话消息失败: {}", e.getMessage());
+        }
+        return result;
     }
     
     public void deleteConversation(Long conversationId) {
+        try {
+            if (conversationId != null) {
+                conversationService.deactivateConversation(String.valueOf(conversationId));
+            }
+        } catch (Exception e) {
+            logger.error("删除对话失败: {}", e.getMessage());
+        }
     }
 }

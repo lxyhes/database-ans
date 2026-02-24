@@ -1,5 +1,7 @@
 package com.data.assistant.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -7,13 +9,30 @@ import java.util.regex.*;
 
 @Service
 public class SqlOptimizationService {
+    
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+    
+    @Autowired
+    private DynamicDataSourceService dynamicDataSourceService;
 
     public Map<String, Object> analyzeSql(String sql) {
+        return analyzeSql(sql, null);
+    }
+    
+    public Map<String, Object> analyzeSql(String sql, Long dataSourceId) {
         Map<String, Object> result = new HashMap<>();
         List<Map<String, Object>> suggestions = new ArrayList<>();
         int score = 100;
 
-        // 1. 检查SELECT *
+        if (dataSourceId != null) {
+            try {
+                dynamicDataSourceService.switchDataSource(dataSourceId);
+            } catch (Exception e) {
+                result.put("dataSourceError", e.getMessage());
+            }
+        }
+
         if (sql.matches("(?i).*SELECT\\s+\\*.*")) {
             suggestions.add(createSuggestion(
                 "避免使用SELECT *",
@@ -24,7 +43,6 @@ public class SqlOptimizationService {
             score -= 15;
         }
 
-        // 2. 检查缺少WHERE子句的UPDATE/DELETE
         if (sql.matches("(?i).*(UPDATE|DELETE).*") && !sql.matches("(?i).*WHERE.*")) {
             suggestions.add(createSuggestion(
                 "缺少WHERE条件",
@@ -35,7 +53,6 @@ public class SqlOptimizationService {
             score -= 30;
         }
 
-        // 3. 检查隐式类型转换
         if (sql.matches("(?i).*WHERE.*\\d+.*")) {
             suggestions.add(createSuggestion(
                 "可能的隐式类型转换",
@@ -46,7 +63,6 @@ public class SqlOptimizationService {
             score -= 10;
         }
 
-        // 4. 检查LIKE前缀模糊查询
         if (sql.matches("(?i).*LIKE\\s+'%.*")) {
             suggestions.add(createSuggestion(
                 "前缀模糊查询",
@@ -57,7 +73,6 @@ public class SqlOptimizationService {
             score -= 10;
         }
 
-        // 5. 检查OR条件
         if (sql.matches("(?i).*WHERE.*\\bOR\\b.*")) {
             suggestions.add(createSuggestion(
                 "使用OR条件",
@@ -68,7 +83,6 @@ public class SqlOptimizationService {
             score -= 5;
         }
 
-        // 6. 检查子查询
         if (sql.matches("(?i).*SELECT.*\\(SELECT.*")) {
             suggestions.add(createSuggestion(
                 "使用子查询",
@@ -79,7 +93,6 @@ public class SqlOptimizationService {
             score -= 10;
         }
 
-        // 7. 检查NOT IN
         if (sql.matches("(?i).*NOT\\s+IN.*")) {
             suggestions.add(createSuggestion(
                 "使用NOT IN",
@@ -90,7 +103,6 @@ public class SqlOptimizationService {
             score -= 10;
         }
 
-        // 8. 检查ORDER BY RAND()
         if (sql.matches("(?i).*ORDER\\s+BY\\s+RAND\\s*\\(.*")) {
             suggestions.add(createSuggestion(
                 "使用ORDER BY RAND()",
@@ -101,7 +113,6 @@ public class SqlOptimizationService {
             score -= 20;
         }
 
-        // 9. 检查LIMIT大偏移量
         Pattern limitPattern = Pattern.compile("(?i)LIMIT\\s+\\d+\\s*,\\s*(\\d+)");
         Matcher limitMatcher = limitPattern.matcher(sql);
         if (limitMatcher.find()) {
@@ -117,7 +128,6 @@ public class SqlOptimizationService {
             }
         }
 
-        // 10. 检查多表JOIN
         Pattern joinPattern = Pattern.compile("(?i)\\bJOIN\\b");
         Matcher joinMatcher = joinPattern.matcher(sql);
         int joinCount = 0;
@@ -131,6 +141,23 @@ public class SqlOptimizationService {
             ));
             score -= 10;
         }
+        
+        try {
+            Map<String, Object> explainResult = executeExplain(sql);
+            result.put("explain", explainResult);
+            
+            List<Map<String, Object>> explainSuggestions = analyzeExplain(explainResult);
+            suggestions.addAll(explainSuggestions);
+            
+            for (Map<String, Object> s : explainSuggestions) {
+                String severity = (String) s.get("severity");
+                if ("critical".equals(severity)) score -= 20;
+                else if ("high".equals(severity)) score -= 10;
+                else if ("medium".equals(severity)) score -= 5;
+            }
+        } catch (Exception e) {
+            result.put("explainError", "无法获取执行计划: " + e.getMessage());
+        }
 
         result.put("score", Math.max(0, score));
         result.put("grade", score >= 90 ? "A" : score >= 70 ? "B" : score >= 50 ? "C" : "D");
@@ -138,6 +165,107 @@ public class SqlOptimizationService {
         result.put("totalSuggestions", suggestions.size());
 
         return result;
+    }
+    
+    private Map<String, Object> executeExplain(String sql) {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            String explainSql = "EXPLAIN " + sql;
+            List<Map<String, Object>> explainRows = jdbcTemplate.queryForList(explainSql);
+            result.put("rows", explainRows);
+            
+            String explainFormatSql = "EXPLAIN FORMAT=JSON " + sql;
+            try {
+                String jsonResult = jdbcTemplate.queryForObject(explainFormatSql, String.class);
+                result.put("json", jsonResult);
+            } catch (Exception ignored) {
+            }
+            
+        } catch (Exception e) {
+            result.put("error", e.getMessage());
+        }
+        
+        return result;
+    }
+    
+    private List<Map<String, Object>> analyzeExplain(Map<String, Object> explainResult) {
+        List<Map<String, Object>> suggestions = new ArrayList<>();
+        
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> rows = (List<Map<String, Object>>) explainResult.get("rows");
+        if (rows == null) return suggestions;
+        
+        for (Map<String, Object> row : rows) {
+            String type = (String) row.get("type");
+            String key = (String) row.get("key");
+            Long rowsExamined = row.get("rows") != null ? ((Number) row.get("rows")).longValue() : 0;
+            String extra = (String) row.get("Extra");
+            String table = (String) row.get("table");
+            
+            if ("ALL".equals(type)) {
+                suggestions.add(createSuggestion(
+                    "全表扫描",
+                    "表 " + table + " 使用了全表扫描(type=ALL)，这是最慢的访问方式",
+                    "critical",
+                    "为查询条件添加适当的索引"
+                ));
+            } else if ("index".equals(type)) {
+                suggestions.add(createSuggestion(
+                    "索引全扫描",
+                    "表 " + table + " 使用了索引全扫描(type=index)，效率较低",
+                    "medium",
+                    "考虑优化索引或查询条件"
+                ));
+            }
+            
+            if (key == null && !"system".equals(type) && !"const".equals(type)) {
+                suggestions.add(createSuggestion(
+                    "未使用索引",
+                    "表 " + table + " 没有使用任何索引",
+                    "high",
+                    "检查WHERE条件并添加合适的索引"
+                ));
+            }
+            
+            if (rowsExamined > 10000) {
+                suggestions.add(createSuggestion(
+                    "扫描行数过多",
+                    "表 " + table + " 预计扫描 " + rowsExamined + " 行，可能影响性能",
+                    "high",
+                    "优化查询条件减少扫描行数"
+                ));
+            }
+            
+            if (extra != null) {
+                if (extra.contains("Using filesort")) {
+                    suggestions.add(createSuggestion(
+                        "使用文件排序",
+                        "表 " + table + " 使用了文件排序(Using filesort)，性能较差",
+                        "medium",
+                        "为ORDER BY字段添加索引"
+                    ));
+                }
+                if (extra.contains("Using temporary")) {
+                    suggestions.add(createSuggestion(
+                        "使用临时表",
+                        "表 " + table + " 使用了临时表(Using temporary)",
+                        "medium",
+                        "优化GROUP BY或ORDER BY避免临时表"
+                    ));
+                }
+                if (extra.contains("Using join buffer")) {
+                    suggestions.add(createSuggestion(
+                        "使用JOIN缓冲区",
+                        "表 " + table + " 使用了JOIN缓冲区，可能缺少索引",
+                        "low",
+                        "为JOIN条件添加索引"
+                    ));
+                }
+            }
+        }
+        
+        return suggestions;
     }
 
     private Map<String, Object> createSuggestion(String title, String description, String severity, String solution) {
@@ -150,21 +278,163 @@ public class SqlOptimizationService {
     }
 
     public String optimizeSql(String sql) {
+        return optimizeSql(sql, null);
+    }
+    
+    public String optimizeSql(String sql, Long dataSourceId) {
         String optimized = sql;
 
-        // 1. 将OR改为UNION（简单情况）
         optimized = optimized.replaceAll("(?i)WHERE\\s+(.+)\\s+OR\\s+(.+)", 
             "WHERE $1 UNION SELECT * FROM table WHERE $2");
 
-        // 2. 将NOT IN改为NOT EXISTS
         optimized = optimized.replaceAll("(?i)NOT\\s+IN\\s*\\(([^)]+)\\)", 
             "NOT EXISTS (SELECT 1 FROM table WHERE condition)");
 
-        // 3. 添加LIMIT限制（如果没有）
         if (!optimized.matches("(?i).*LIMIT.*") && optimized.matches("(?i).*SELECT.*")) {
             optimized = optimized + " LIMIT 1000";
         }
 
         return optimized;
+    }
+    
+    public Map<String, Object> getIndexSuggestions(String tableName) {
+        return getIndexSuggestions(tableName, null);
+    }
+    
+    public Map<String, Object> getIndexSuggestions(String tableName, Long dataSourceId) {
+        Map<String, Object> result = new HashMap<>();
+        List<Map<String, Object>> suggestions = new ArrayList<>();
+        
+        if (dataSourceId != null) {
+            try {
+                dynamicDataSourceService.switchDataSource(dataSourceId);
+            } catch (Exception e) {
+                result.put("error", e.getMessage());
+                return result;
+            }
+        }
+        
+        try {
+            List<Map<String, Object>> indexes = jdbcTemplate.queryForList(
+                "SHOW INDEX FROM " + tableName
+            );
+            result.put("existingIndexes", indexes);
+            
+            List<Map<String, Object>> columns = jdbcTemplate.queryForList(
+                "SELECT COLUMN_NAME, DATA_TYPE, COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ?",
+                tableName
+            );
+            result.put("columns", columns);
+            
+            for (Map<String, Object> col : columns) {
+                String colName = (String) col.get("COLUMN_NAME");
+                String dataType = (String) col.get("DATA_TYPE");
+                
+                if (colName.toLowerCase().endsWith("_id") || 
+                    colName.toLowerCase().endsWith("_code") ||
+                    colName.toLowerCase().equals("id")) {
+                    
+                    boolean hasIndex = indexes.stream()
+                        .anyMatch(idx -> colName.equals(idx.get("COLUMN_NAME")));
+                    
+                    if (!hasIndex) {
+                        suggestions.add(Map.of(
+                            "type", "INDEX",
+                            "column", colName,
+                            "reason", "外键或ID字段通常需要索引",
+                            "sql", "CREATE INDEX idx_" + colName + " ON " + tableName + "(" + colName + ")"
+                        ));
+                    }
+                }
+                
+                if (colName.toLowerCase().contains("time") || 
+                    colName.toLowerCase().contains("date") ||
+                    colName.toLowerCase().endsWith("_at")) {
+                    
+                    boolean hasIndex = indexes.stream()
+                        .anyMatch(idx -> colName.equals(idx.get("COLUMN_NAME")));
+                    
+                    if (!hasIndex) {
+                        suggestions.add(Map.of(
+                            "type", "INDEX",
+                            "column", colName,
+                            "reason", "时间字段常用于范围查询和排序",
+                            "sql", "CREATE INDEX idx_" + colName + " ON " + tableName + "(" + colName + ")"
+                        ));
+                    }
+                }
+            }
+            
+        } catch (Exception e) {
+            result.put("error", e.getMessage());
+        }
+        
+        result.put("suggestions", suggestions);
+        return result;
+    }
+    
+    public Map<String, Object> getTableStatistics(String tableName) {
+        return getTableStatistics(tableName, null);
+    }
+    
+    public Map<String, Object> getTableStatistics(String tableName, Long dataSourceId) {
+        Map<String, Object> result = new HashMap<>();
+        
+        if (dataSourceId != null) {
+            try {
+                dynamicDataSourceService.switchDataSource(dataSourceId);
+            } catch (Exception e) {
+                result.put("error", e.getMessage());
+                return result;
+            }
+        }
+        
+        try {
+            Map<String, Object> tableStatus = jdbcTemplate.queryForMap(
+                "SHOW TABLE STATUS LIKE ?", tableName
+            );
+            result.put("tableStatus", tableStatus);
+            
+            Long rowCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM " + tableName, Long.class
+            );
+            result.put("rowCount", rowCount);
+            
+            List<Map<String, Object>> columnStats = new ArrayList<>();
+            List<Map<String, Object>> columns = jdbcTemplate.queryForList(
+                "SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ?",
+                tableName
+            );
+            
+            for (Map<String, Object> col : columns) {
+                String colName = (String) col.get("COLUMN_NAME");
+                String dataType = (String) col.get("DATA_TYPE");
+                
+                Map<String, Object> stats = new HashMap<>();
+                stats.put("column", colName);
+                stats.put("type", dataType);
+                
+                if (dataType.contains("int") || dataType.contains("decimal") || 
+                    dataType.contains("float") || dataType.contains("double")) {
+                    try {
+                        Map<String, Object> numStats = jdbcTemplate.queryForMap(
+                            "SELECT MIN(" + colName + ") as min, MAX(" + colName + ") as max, " +
+                            "AVG(" + colName + ") as avg, COUNT(DISTINCT " + colName + ") as distinct_count " +
+                            "FROM " + tableName
+                        );
+                        stats.put("statistics", numStats);
+                    } catch (Exception ignored) {}
+                }
+                
+                columnStats.add(stats);
+            }
+            
+            result.put("columnStatistics", columnStats);
+            
+        } catch (Exception e) {
+            result.put("error", e.getMessage());
+        }
+        
+        return result;
     }
 }

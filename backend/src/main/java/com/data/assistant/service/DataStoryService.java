@@ -2,10 +2,9 @@ package com.data.assistant.service;
 
 import com.data.assistant.repository.DataSourceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import javax.sql.DataSource;
-import java.sql.*;
 import java.util.*;
 
 @Service
@@ -15,26 +14,30 @@ public class DataStoryService {
     private DataSourceRepository dataSourceRepository;
 
     @Autowired
-    private DataSource jdbcDataSource;
+    private JdbcTemplate jdbcTemplate;
+    
+    @Autowired
+    private DynamicDataSourceService dynamicDataSourceService;
 
     public Map<String, Object> generateDataStory(Long dataSourceId, String tableName) {
         Map<String, Object> story = new HashMap<>();
         
         try {
-            // 1. 获取表的基本统计信息
+            if (dataSourceId != null) {
+                dynamicDataSourceService.switchDataSource(dataSourceId);
+            }
+            
             Map<String, Object> statistics = getTableStatistics(dataSourceId, tableName);
             
-            // 2. 获取数值列的分布
             List<Map<String, Object>> columnDistributions = getColumnDistributions(dataSourceId, tableName);
             
-            // 3. 生成洞察
             List<String> insights = generateInsights(statistics, columnDistributions);
             
-            // 4. 生成故事文本
             String storyText = generateStoryText(tableName, statistics, insights);
             
             story.put("title", tableName + " 数据洞察报告");
             story.put("tableName", tableName);
+            story.put("dataSourceId", dataSourceId);
             story.put("statistics", statistics);
             story.put("columnDistributions", columnDistributions);
             story.put("insights", insights);
@@ -48,34 +51,21 @@ public class DataStoryService {
         return story;
     }
 
-    private Map<String, Object> getTableStatistics(Long dataSourceId, String tableName) throws SQLException {
+    private Map<String, Object> getTableStatistics(Long dataSourceId, String tableName) {
         Map<String, Object> stats = new HashMap<>();
         
-        try (Connection connection = jdbcDataSource.getConnection();
-             Statement stmt = connection.createStatement()) {
+        try {
+            Long totalRows = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM " + tableName, Long.class);
+            stats.put("totalRows", totalRows);
             
-            // 总行数
-            ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableName);
-            if (rs.next()) {
-                stats.put("totalRows", rs.getLong(1));
-            }
-            
-            // 获取列信息
-            DatabaseMetaData metaData = connection.getMetaData();
-            List<Map<String, Object>> columns = new ArrayList<>();
-            
-            try (ResultSet colRs = metaData.getColumns(null, null, tableName, "%")) {
-                while (colRs.next()) {
-                    Map<String, Object> col = new HashMap<>();
-                    col.put("name", colRs.getString("COLUMN_NAME"));
-                    col.put("type", colRs.getString("TYPE_NAME"));
-                    columns.add(col);
-                }
-            }
+            List<Map<String, Object>> columns = jdbcTemplate.queryForList(
+                "SELECT COLUMN_NAME as name, DATA_TYPE as type FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ?",
+                tableName
+            );
             stats.put("columns", columns);
             stats.put("columnCount", columns.size());
             
-            // 数值列统计
             for (Map<String, Object> col : columns) {
                 String colName = (String) col.get("name");
                 String colType = ((String) col.get("type")).toUpperCase();
@@ -84,47 +74,37 @@ public class DataStoryService {
                     colType.contains("FLOAT") || colType.contains("DOUBLE") ||
                     colType.contains("NUMERIC")) {
                     
-                    String sql = String.format(
-                        "SELECT MIN(%s) as min, MAX(%s) as max, AVG(%s) as avg, " +
-                        "COUNT(DISTINCT %s) as unique_count FROM %s",
-                        colName, colName, colName, colName, tableName
-                    );
-                    
-                    try (ResultSet statRs = stmt.executeQuery(sql)) {
-                        if (statRs.next()) {
-                            Map<String, Object> colStats = new HashMap<>();
-                            colStats.put("min", statRs.getObject("min"));
-                            colStats.put("max", statRs.getObject("max"));
-                            colStats.put("avg", statRs.getObject("avg"));
-                            colStats.put("uniqueCount", statRs.getLong("unique_count"));
-                            col.put("statistics", colStats);
-                        }
+                    try {
+                        String sql = String.format(
+                            "SELECT MIN(%s) as min, MAX(%s) as max, AVG(%s) as avg, " +
+                            "COUNT(DISTINCT %s) as unique_count FROM %s",
+                            colName, colName, colName, colName, tableName
+                        );
+                        
+                        Map<String, Object> colStats = jdbcTemplate.queryForMap(sql);
+                        col.put("statistics", colStats);
+                    } catch (Exception ignored) {
                     }
                 }
             }
+        } catch (Exception e) {
+            stats.put("error", e.getMessage());
         }
         
         return stats;
     }
 
-    private List<Map<String, Object>> getColumnDistributions(Long dataSourceId, String tableName) throws SQLException {
+    private List<Map<String, Object>> getColumnDistributions(Long dataSourceId, String tableName) {
         List<Map<String, Object>> distributions = new ArrayList<>();
         
-        try (Connection connection = jdbcDataSource.getConnection();
-             Statement stmt = connection.createStatement()) {
+        try {
+            List<Map<String, Object>> columns = jdbcTemplate.queryForList(
+                "SELECT COLUMN_NAME as name FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ?",
+                tableName
+            );
             
-            // 获取所有列
-            DatabaseMetaData metaData = connection.getMetaData();
-            List<String> columns = new ArrayList<>();
-            
-            try (ResultSet colRs = metaData.getColumns(null, null, tableName, "%")) {
-                while (colRs.next()) {
-                    columns.add(colRs.getString("COLUMN_NAME"));
-                }
-            }
-            
-            // 对每个列获取TOP值分布
-            for (String column : columns) {
+            for (Map<String, Object> col : columns) {
+                String column = (String) col.get("name");
                 Map<String, Object> dist = new HashMap<>();
                 dist.put("column", column);
                 
@@ -134,19 +114,16 @@ public class DataStoryService {
                     column, tableName, column, column
                 );
                 
-                List<Map<String, Object>> topValues = new ArrayList<>();
-                try (ResultSet rs = stmt.executeQuery(sql)) {
-                    while (rs.next()) {
-                        Map<String, Object> value = new HashMap<>();
-                        value.put("value", rs.getObject("value"));
-                        value.put("count", rs.getLong("count"));
-                        topValues.add(value);
-                    }
+                try {
+                    List<Map<String, Object>> topValues = jdbcTemplate.queryForList(sql);
+                    dist.put("topValues", topValues);
+                } catch (Exception e) {
+                    dist.put("topValues", new ArrayList<>());
                 }
                 
-                dist.put("topValues", topValues);
                 distributions.add(dist);
             }
+        } catch (Exception e) {
         }
         
         return distributions;
@@ -219,32 +196,28 @@ public class DataStoryService {
         Map<String, Object> story = new HashMap<>();
         
         try {
+            if (dataSourceId != null) {
+                dynamicDataSourceService.switchDataSource(dataSourceId);
+            }
+            
             List<Map<String, Object>> comparisonData = new ArrayList<>();
             
-            try (Connection connection = jdbcDataSource.getConnection();
-                 Statement stmt = connection.createStatement()) {
-                
-                // 按时间段对比
-                String sql = String.format(
-                    "SELECT DATE(created_at) as date, COUNT(*) as count, " +
-                    "SUM(amount) as total_amount FROM %s " +
-                    "WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) " +
-                    "GROUP BY DATE(created_at) ORDER BY date",
-                    tableName
-                );
-                
-                try (ResultSet rs = stmt.executeQuery(sql)) {
-                    while (rs.next()) {
-                        Map<String, Object> data = new HashMap<>();
-                        data.put("date", rs.getDate("date"));
-                        data.put("count", rs.getLong("count"));
-                        data.put("totalAmount", rs.getObject("total_amount"));
-                        comparisonData.add(data);
-                    }
-                }
+            String sql = String.format(
+                "SELECT DATE(created_at) as date, COUNT(*) as count, " +
+                "SUM(amount) as total_amount FROM %s " +
+                "WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) " +
+                "GROUP BY DATE(created_at) ORDER BY date",
+                tableName
+            );
+            
+            try {
+                comparisonData = jdbcTemplate.queryForList(sql);
+            } catch (Exception e) {
+                story.put("sqlError", e.getMessage());
             }
             
             story.put("title", tableName + " 对比分析报告");
+            story.put("dataSourceId", dataSourceId);
             story.put("comparisonData", comparisonData);
             story.put("generatedAt", new java.util.Date());
             
